@@ -1,0 +1,168 @@
+# ComicDB
+
+イベントで購入した同人誌を、表紙・サークル・作者・原作・購入履歴と一緒に管理する
+1人用のWebサービスです。スマートフォン向けPWAとして利用でき、事前に同期すれば
+会場で通信できない場合も所持確認できます。
+
+## 主な機能
+
+- イベントを固定した購入品の連続登録
+- タイトル、サークル、作者、原作、キャラクター、タグの日本語部分一致検索
+- 原作ごとにキャラクターとカップリングを管理する階層分類マスター
+- 類似タイトルとサークルによる重複候補表示
+- 同じ本の追加購入と所持数集計
+- 表紙撮影、WebP変換、R18表紙の既定ぼかし
+- CSVの事前確認、取込、全件エクスポート
+- 読み取り専用オフラインスナップショット
+- SQLiteと表紙を含む毎日バックアップ、30世代保持
+
+## WindowsミニPCで起動
+
+### 1. 必要なもの
+
+- Windows 10または11
+- Docker Desktop（WSL2バックエンド）
+- 既存のSoftEther VPNまたはWireGuard
+- バックアップ用の外付けHDD
+
+Docker DesktopをWindowsログイン時に起動する設定にしてください。
+
+### 2. 設定
+
+`.env.example` を `.env` へコピーし、少なくとも次を環境に合わせて変更します。
+
+```dotenv
+APP_ORIGIN=https://comicdb.example.com
+COMICDB_BIND_ADDRESS=10.20.0.10
+COMICDB_PORT=3000
+COMICDB_BACKUP_DIR=D:/ComicDB/backups
+TRUSTED_PROXY_CIDRS=10.20.0.1/32
+```
+
+- `APP_ORIGIN`: VPS側リバースプロキシで利用する正式なHTTPS URL
+- `COMICDB_BIND_ADDRESS`: WindowsミニPCのVPN側IP。ローカルだけなら `127.0.0.1`
+- `COMICDB_BACKUP_DIR`: 外付けHDD上のバックアップフォルダー
+- `TRUSTED_PROXY_CIDRS`: VPSのVPN側アドレス。値があると転送元IPをログイン制限に利用
+
+自宅ルーター側のポート開放は不要です。
+
+### 3. ビルドと起動
+
+```powershell
+docker compose up -d --build
+docker compose ps
+```
+
+初回アクセス時は管理者作成画面が表示されます。ユーザー名と12文字以上の
+パスワードを設定してください。2人目以降のユーザー作成画面はありません。
+
+## VPS側HTTPSリバースプロキシ
+
+VPSとWindowsミニPCの間は既存VPN経由で接続してください。ComicDBはVPNや証明書を
+構築しません。
+
+### Nginx例
+
+```nginx
+server {
+    listen 443 ssl http2;
+    server_name comicdb.example.com;
+
+    # ssl_certificate と ssl_certificate_key は既存の証明書を指定
+
+    location / {
+        proxy_pass http://10.20.0.10:3000;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Forwarded-Proto https;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_buffering off;
+        client_max_body_size 22m;
+    }
+}
+```
+
+### Caddy例
+
+```caddyfile
+comicdb.example.com {
+    reverse_proxy 10.20.0.10:3000
+    request_body {
+        max_size 22MB
+    }
+}
+```
+
+VPSのHTTPS待受も可能ならVPN側インターフェースに限定してください。インターネットへ
+公開する場合は、VPS側のファイアウォールやアクセス制限を別途設計してください。
+
+## オフライン利用
+
+Service WorkerはHTTPSまたはlocalhostでのみ動作します。
+
+1. スマートフォンでHTTPS URLへログイン
+2. 「設定」→「オフライン所持確認」→「端末へ保存」
+3. 必要ならブラウザーの「ホーム画面に追加」を実行
+
+オフラインでは検索と閲覧だけ利用できます。追加・編集はできません。端末へ保存した
+データは暗号化用PINを持たないため、スマートフォン自体のロックを有効にしてください。
+
+## CSV
+
+「設定」から日本語見出しのテンプレートを取得できます。取込時は行別エラーと
+重複候補を確認してから確定します。区切り文字には `、`、`,`、`;` を使用できます。
+
+HEIC画像の直接取込には対応していません。カメラ撮影、JPEG、PNG、WebP、AVIFを
+使用してください。
+
+## バックアップと復元
+
+`AUTO_BACKUP=true` の場合、アプリ起動後に1日1回バックアップを確認します。
+バックアップは `COMICDB_BACKUP_DIR` にZIPで保存され、30世代を超えた古いものを
+削除します。管理画面から即時実行もできます。
+
+起動時にDBスキーマ更新が必要な場合は、更新前バックアップを自動作成してから
+マイグレーションします。バックアップまたはマイグレーションに失敗した場合、
+Webサーバーは起動しません。
+
+復元前にアプリを停止します。次のコマンドは現在データを
+`/data/pre-restore-...` へ退避してから復元するため、直前状態へ戻せます。
+
+```powershell
+docker compose down
+docker compose run --rm --no-deps comicdb npm run restore -- --from /backups/comicdb-YYYY-MM-DD....zip --confirm
+docker compose up -d
+```
+
+復元後はログイン、蔵書件数、表紙表示を確認してください。
+
+## 更新
+
+更新前に管理画面から手動バックアップを作成します。
+
+```powershell
+docker compose build --pull
+docker compose up -d
+docker compose ps
+```
+
+## 開発
+
+Node.js 22以降とnpmを使用します。
+
+```bash
+npm ci
+cp .env.example .env
+npm run dev
+```
+
+検証コマンド:
+
+```bash
+npm test
+npm run lint
+npm run build
+docker compose config
+```
+
+ローカルデータは `data/`、バックアップは `backups/` に作成され、Git管理対象外です。
