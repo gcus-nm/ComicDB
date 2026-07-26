@@ -10,6 +10,7 @@ import {
   LoaderCircle,
   Plus,
   Save,
+  Trash2,
 } from "lucide-react";
 import type { BookSummary } from "@/lib/types";
 import type { TaxonomyTag } from "@/lib/catalog";
@@ -33,6 +34,7 @@ export function BookForm({
   continuous?: boolean;
 }) {
   const formRef = useRef<HTMLFormElement>(null);
+  const coverInputRef = useRef<HTMLInputElement>(null);
   const router = useRouter();
   const [pending, setPending] = useState(false);
   const [checking, setChecking] = useState(false);
@@ -62,6 +64,11 @@ export function BookForm({
           }
         : null,
     );
+  }
+
+  function clearCover() {
+    if (coverInputRef.current) coverInputRef.current.value = "";
+    setCoverPreview(null);
   }
 
   function addCreatedEvent(created: SelectableEvent) {
@@ -250,41 +257,57 @@ export function BookForm({
             <p>表紙があると会場でも素早く見分けられます。</p>
           </div>
         </div>
-        <label className={`cover-upload${coverPreview ? " has-preview" : ""}`}>
-          {coverPreview ? (
-            <>
-              {/* Blob URLはNext.js Imageの最適化対象外なので、選択直後のローカル表示にはimgを使う。 */}
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                className="cover-upload-preview"
-                src={coverPreview.url}
-                alt="選択した表紙のプレビュー"
-              />
-              <span className="cover-upload-copy" aria-live="polite">
-                <span className="cover-upload-status">
-                  <Camera size={16} />
-                  表紙を選択済み
+        <div className="cover-input-group">
+          <label className={`cover-upload${coverPreview ? " has-preview" : ""}`}>
+            {coverPreview ? (
+              <>
+                {/* Blob URLはNext.js Imageの最適化対象外なので、選択直後のローカル表示にはimgを使う。 */}
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  className="cover-upload-preview"
+                  src={coverPreview.url}
+                  alt="選択した表紙のプレビュー"
+                />
+                <span className="cover-upload-copy" aria-live="polite">
+                  <span className="cover-upload-status">
+                    <Camera size={16} />
+                    表紙を選択済み
+                  </span>
+                  <strong title={coverPreview.fileName}>{coverPreview.fileName}</strong>
+                  <span>クリックして別の画像を選択</span>
+                  <span>JPEG・PNG・WebP・AVIF / 最大20MB</span>
                 </span>
-                <strong title={coverPreview.fileName}>{coverPreview.fileName}</strong>
-                <span>クリックして別の画像を選択</span>
+              </>
+            ) : (
+              <>
+                <Camera size={27} />
+                <strong>表紙を撮影・選択</strong>
                 <span>JPEG・PNG・WebP・AVIF / 最大20MB</span>
-              </span>
-            </>
-          ) : (
-            <>
-              <Camera size={27} />
-              <strong>表紙を撮影・選択</strong>
-              <span>JPEG・PNG・WebP・AVIF / 最大20MB</span>
-            </>
-          )}
-          <input
-            name="cover"
-            type="file"
-            accept="image/jpeg,image/png,image/webp,image/avif"
-            capture="environment"
-            onChange={(eventObject) => selectCover(eventObject.currentTarget.files?.[0])}
-          />
-        </label>
+              </>
+            )}
+            <input
+              ref={coverInputRef}
+              name="cover"
+              type="file"
+              accept="image/jpeg,image/png,image/webp,image/avif"
+              capture="environment"
+              onChange={(eventObject) => selectCover(eventObject.currentTarget.files?.[0])}
+            />
+          </label>
+          {coverPreview ? (
+            <div className="cover-actions">
+              <button
+                className="ghost-button danger"
+                type="button"
+                onClick={clearCover}
+                disabled={pending}
+              >
+                <Trash2 size={16} />
+                選択した画像を削除
+              </button>
+            </div>
+          ) : null}
+        </div>
         <div className="form-grid">
           <label>
             成人区分

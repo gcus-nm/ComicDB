@@ -1323,6 +1323,49 @@ button:disabled {
   color: var(--accent);
 }
 
+.edit-cover-field {
+  display: grid;
+  gap: 7px;
+}
+
+.edit-cover-label {
+  color: var(--ink-soft);
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.edit-cover-field .cover-upload {
+  margin-bottom: 0;
+}
+
+.cover-input-group {
+  display: grid;
+  gap: 7px;
+  margin-bottom: 21px;
+}
+
+.cover-input-group .cover-upload {
+  margin-bottom: 0;
+}
+
+.cover-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.cover-actions .ghost-button {
+  min-height: 36px;
+}
+
+.edit-cover-notice {
+  margin: 0;
+  color: var(--danger);
+  font-size: 11px;
+  line-height: 1.6;
+  text-align: right;
+}
+
 .continuous-status {
   display: flex;
   align-items: center;

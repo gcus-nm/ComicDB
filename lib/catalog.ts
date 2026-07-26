@@ -18,6 +18,7 @@ import type {
 } from "./types";
 
 type BookInput = z.infer<typeof bookInputSchema>;
+type BookMedia = { coverPath: string; thumbnailPath: string };
 type EventInput = z.infer<typeof eventInputSchema>;
 type WishlistItemInput = z.infer<typeof wishlistItemInputSchema>;
 type WishlistItemUpdateInput = z.infer<typeof wishlistItemUpdateSchema>;
@@ -475,7 +476,7 @@ export function syncBookSearch(bookId: string) {
 
 export function createBook(
   input: BookInput,
-  media?: { coverPath: string; thumbnailPath: string } | null,
+  media?: BookMedia | null,
 ) {
   const db = getDb().sqlite;
   const id = randomUUID();
@@ -529,19 +530,30 @@ export function createBook(
   return getBook(id)!;
 }
 
-export function updateBook(id: string, input: BookInput) {
+export function updateBook(
+  id: string,
+  input: BookInput,
+  media?: BookMedia | null,
+) {
   const db = getDb().sqlite;
   const current = getBook(id);
   if (!current) return null;
   const now = new Date().toISOString();
   const storageLocationId =
     input.storageLocationId || findOrCreateStorage(input.storageLocation, now);
+  const mediaAssignment =
+    media === undefined ? "" : ", cover_path = ?, thumbnail_path = ?";
+  const mediaValues =
+    media === undefined
+      ? []
+      : [media?.coverPath ?? null, media?.thumbnailPath ?? null];
   const transaction = db.transaction(() => {
     db.prepare(
       `UPDATE books SET
         title = ?, normalized_title = ?, adult_rating = ?, published_on = ?,
         edition = ?, storage_location_id = ?, read_status = ?,
-        ownership_status = ?, disposed_at = ?, favorite = ?, notes = ?,
+        ownership_status = ?, disposed_at = ?, favorite = ?, notes = ?
+        ${mediaAssignment},
         updated_at = ?
        WHERE id = ?`,
     ).run(
@@ -558,6 +570,7 @@ export function updateBook(id: string, input: BookInput) {
         : null,
       input.favorite ? 1 : 0,
       input.notes,
+      ...mediaValues,
       now,
       id,
     );
@@ -566,6 +579,20 @@ export function updateBook(id: string, input: BookInput) {
   transaction();
   syncBookSearch(id);
   return getBook(id);
+}
+
+export function getBookMediaPaths(id: string) {
+  const row = getDb()
+    .sqlite.prepare(
+      "SELECT cover_path, thumbnail_path FROM books WHERE id = ?",
+    )
+    .get(id) as
+    | { cover_path: string | null; thumbnail_path: string | null }
+    | undefined;
+  if (!row) return null;
+  return [row.cover_path, row.thumbnail_path].filter(
+    (value): value is string => Boolean(value),
+  );
 }
 
 export function addAcquisition(
