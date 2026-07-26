@@ -13,3 +13,6 @@
 - 蔵書の処分済み・所持中の切替、再入手時の自動復元、確認付き完全削除を追加。
 - 蔵書登録画面から作品・キャラクター・カップリングを追加し、その場で選択できるクイック追加を追加。
 - Windows Docker Desktop、既存VPN、VPS HTTPSプロキシ向けの運用構成を追加。
+- 個人GoogleアカウントのOAuth接続、Google Picker、競合検出付きの手動Googleスプレッドシート双方向同期を追加。
+- Google Cloudプロジェクト、必要API、制限付きPicker API Keyを冪等構築するgcloud
+  CLIと、OAuth Client JSONを安全に取り込む設定CLI、初回構築手順書を追加。

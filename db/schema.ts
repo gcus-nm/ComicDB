@@ -219,3 +219,37 @@ export const appSettings = sqliteTable("app_settings", {
   value: text("value").notNull(),
   updatedAt: text("updated_at").notNull(),
 });
+
+export const googleIntegrations = sqliteTable("google_integrations", {
+  userId: text("user_id")
+    .primaryKey()
+    .references(() => users.id, { onDelete: "cascade" }),
+  googleSubject: text("google_subject").notNull(),
+  googleEmail: text("google_email").notNull(),
+  encryptedRefreshToken: text("encrypted_refresh_token").notNull(),
+  grantedScopes: text("granted_scopes").notNull(),
+  spreadsheetId: text("spreadsheet_id"),
+  spreadsheetName: text("spreadsheet_name"),
+  sheetId: integer("sheet_id"),
+  sheetTitle: text("sheet_title"),
+  lastPushAt: text("last_push_at"),
+  lastPullAt: text("last_pull_at"),
+  createdAt: text("created_at").notNull(),
+  updatedAt: text("updated_at").notNull(),
+});
+
+export const googleOauthStates = sqliteTable(
+  "google_oauth_states",
+  {
+    stateHash: text("state_hash").primaryKey(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    sessionId: text("session_id")
+      .notNull()
+      .references(() => sessions.id, { onDelete: "cascade" }),
+    expiresAt: text("expires_at").notNull(),
+    createdAt: text("created_at").notNull(),
+  },
+  (table) => [index("google_oauth_states_expires_idx").on(table.expiresAt)],
+);

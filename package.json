@@ -14,6 +14,8 @@
     "test:watch": "vitest",
     "lint": "eslint . --ignore-pattern .next",
     "db:generate": "drizzle-kit generate",
+    "google:provision": "bash scripts/provision-google-cloud.sh",
+    "google:configure": "bash scripts/configure-google.sh",
     "migrate": "node scripts/migrate.mjs",
     "db:studio": "drizzle-kit studio",
     "restore": "node scripts/restore.mjs"
@@ -24,6 +26,7 @@
     "better-sqlite3": "^12.4.1",
     "csv-parse": "^6.1.0",
     "drizzle-orm": "0.45.2",
+    "googleapis": "^173.0.0",
     "lucide-react": "^0.468.0",
     "next": "16.2.11",
     "react": "19.2.6",
@@ -48,6 +51,7 @@
     "vitest": "^4.0.18"
   },
   "overrides": {
+    "gaxios": "^7.3.0",
     "postcss": "^8.5.18",
     "sharp": "^0.35.0"
   }

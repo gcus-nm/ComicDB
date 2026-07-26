@@ -1,15 +1,17 @@
 import { requireRequestUser } from "@/lib/auth";
-import { exportCsv } from "@/lib/csv";
+import { beginGoogleOAuth } from "@/lib/google-auth";
 import { errorResponse } from "@/lib/security";
+
+export const dynamic = "force-dynamic";
 
 export async function GET(request: Request) {
   try {
-    requireRequestUser(request);
-    return new Response(exportCsv(), {
+    const user = requireRequestUser(request);
+    return new Response(null, {
+      status: 302,
       headers: {
-        "Content-Type": "text/csv; charset=utf-8",
+        Location: beginGoogleOAuth(user.id, user.sessionId),
         "Cache-Control": "private, no-store",
-        "Content-Disposition": 'attachment; filename="comicdb-export.csv"',
       },
     });
   } catch (error) {
