@@ -1,5 +1,6 @@
 export type AdultRating = "general" | "r18";
 export type ReadStatus = "unread" | "reading" | "read";
+export type OwnershipStatus = "owned" | "disposed";
 export type TagType = "fandom" | "character" | "pairing" | "genre" | "custom";
 
 export type BookSummary = {
@@ -8,6 +9,8 @@ export type BookSummary = {
   adultRating: AdultRating;
   edition: string;
   readStatus: ReadStatus;
+  ownershipStatus: OwnershipStatus;
+  disposedAt: string | null;
   favorite: boolean;
   notes: string;
   coverUrl: string | null;

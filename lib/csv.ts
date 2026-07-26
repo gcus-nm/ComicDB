@@ -25,6 +25,7 @@ export const CSV_HEADERS = [
   "購入価格",
   "数量",
   "保管場所",
+  "所持状態",
   "読了状態",
   "お気に入り",
   "メモ",
@@ -53,6 +54,7 @@ function toNumber(value: string) {
 function toBookInput(row: RawCsvRow) {
   const adult = clean(row["成人区分"]).toLocaleLowerCase();
   const read = clean(row["読了状態"]);
+  const ownership = clean(row["所持状態"]);
   const favorite = /^(1|true|yes|はい|★)$/iu.test(clean(row["お気に入り"]));
   return {
     title: clean(row["タイトル"]),
@@ -67,6 +69,10 @@ function toBookInput(row: RawCsvRow) {
     publishedOn: clean(row["発行日"]),
     edition: clean(row["版"]),
     storageLocation: clean(row["保管場所"]),
+    ownershipStatus:
+      ownership === "処分済み" || ownership === "disposed"
+        ? ("disposed" as const)
+        : ("owned" as const),
     readStatus:
       read === "読了" || read === "read"
         ? ("read" as const)
@@ -179,6 +185,7 @@ export function exportCsv() {
         latest?.priceYen ?? "",
         book.ownedCount,
         book.storageLocation ?? "",
+        book.ownershipStatus === "disposed" ? "処分済み" : "所持中",
         book.readStatus === "read"
           ? "読了"
           : book.readStatus === "reading"

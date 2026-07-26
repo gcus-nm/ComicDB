@@ -43,6 +43,8 @@ CREATE TABLE IF NOT EXISTS books (
   edition TEXT NOT NULL DEFAULT '',
   storage_location_id TEXT REFERENCES storage_locations(id) ON DELETE SET NULL,
   read_status TEXT NOT NULL DEFAULT 'unread' CHECK(read_status IN ('unread', 'reading', 'read')),
+  ownership_status TEXT NOT NULL DEFAULT 'owned' CHECK(ownership_status IN ('owned', 'disposed')),
+  disposed_at TEXT,
   favorite INTEGER NOT NULL DEFAULT 0,
   notes TEXT NOT NULL DEFAULT '',
   cover_path TEXT,
@@ -51,6 +53,7 @@ CREATE TABLE IF NOT EXISTS books (
   updated_at TEXT NOT NULL
 );
 CREATE INDEX IF NOT EXISTS books_normalized_title_idx ON books(normalized_title);
+CREATE INDEX IF NOT EXISTS books_ownership_status_idx ON books(ownership_status);
 CREATE INDEX IF NOT EXISTS books_updated_idx ON books(updated_at);
 
 CREATE TABLE IF NOT EXISTS circles (

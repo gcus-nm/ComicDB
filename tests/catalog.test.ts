@@ -8,10 +8,13 @@ import {
   createBook,
   createEvent,
   createTaxonomyTag,
+  deleteBook,
   deleteTaxonomyTag,
   findDuplicateCandidates,
+  getBook,
   listBooks,
   listTaxonomyTags,
+  setBookOwnershipStatus,
 } from "@/lib/catalog";
 import { exportCsv, importCsv } from "@/lib/csv";
 
@@ -51,6 +54,7 @@ describe("蔵書管理", () => {
       storageLocationId: null,
       storageLocation: "本棚A",
       readStatus: "unread",
+      ownershipStatus: "owned",
       favorite: false,
       notes: "",
       eventId: event.id,
@@ -68,6 +72,16 @@ describe("蔵書管理", () => {
     expect(findDuplicateCandidates("夏の記憶", "星空書房")[0]?.id).toBe(book.id);
     expect(findDuplicateCandidates("", "")).toEqual([]);
     expect(addAcquisition(book.id, { eventId: event.id, quantity: 2 })?.ownedCount).toBe(3);
+
+    expect(setBookOwnershipStatus(book.id, "disposed")?.ownershipStatus).toBe("disposed");
+    expect(listBooks({ q: "夏の記憶" }).total).toBe(0);
+    expect(listBooks({ q: "夏の記憶", ownershipStatus: "disposed" }).books[0]?.id).toBe(
+      book.id,
+    );
+    expect(addAcquisition(book.id, { quantity: 1 })?.ownershipStatus).toBe("owned");
+    expect(deleteBook(book.id)).toEqual([]);
+    expect(getBook(book.id)).toBeNull();
+    expect(listBooks({ q: "夏の記憶", ownershipStatus: "all" }).total).toBe(0);
   });
 
   it("CSVを出力して再取込できる", () => {
@@ -86,6 +100,7 @@ describe("蔵書管理", () => {
       storageLocationId: null,
       storageLocation: "",
       readStatus: "unread",
+      ownershipStatus: "disposed",
       favorite: false,
       notes: "",
       eventId: null,
@@ -100,7 +115,10 @@ describe("蔵書管理", () => {
     tempDir = mkdtempSync(path.join(os.tmpdir(), "comicdb-test-import-"));
     process.env.DATA_DIR = tempDir;
     expect(importCsv(csv).imported).toBe(1);
-    expect(listBooks({ q: "CSVテスト" }).total).toBe(1);
+    expect(
+      listBooks({ q: "CSVテスト", ownershipStatus: "disposed" }).books[0]
+        ?.ownershipStatus,
+    ).toBe("disposed");
   });
 
   it("分類マスターを事前登録し、未使用項目を削除できる", () => {

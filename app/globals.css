@@ -359,6 +359,7 @@ button:disabled {
 .primary-button,
 .secondary-button,
 .ghost-button,
+.danger-button,
 .text-link,
 .back-link {
   display: inline-flex;
@@ -421,6 +422,23 @@ button:disabled {
 
 .ghost-button.danger {
   color: var(--danger);
+}
+
+.danger-button {
+  border: 1px solid var(--danger);
+  background: var(--danger);
+  color: white;
+  padding: 0 17px;
+}
+
+.danger-button:hover {
+  filter: brightness(0.92);
+}
+
+.danger-button:disabled {
+  border-color: var(--line-strong);
+  background: var(--paper-deep);
+  color: var(--ink-faint);
 }
 
 .text-link,
@@ -1406,6 +1424,23 @@ button:disabled {
   color: var(--accent);
 }
 
+.detail-badges .disposed-badge,
+.disposed-label {
+  background: #eee8df;
+  color: #695f53;
+  font-weight: 700;
+}
+
+.book-card.disposed .cover-frame {
+  filter: grayscale(0.55);
+  opacity: 0.82;
+}
+
+.book-card.disposed:hover .cover-frame {
+  filter: grayscale(0.25);
+  opacity: 0.94;
+}
+
 .book-detail-main h1 {
   margin: 16px 0 8px;
   font-family: Georgia, "Yu Mincho", serif;
@@ -1459,6 +1494,77 @@ button:disabled {
   color: var(--ink-soft);
   font-size: 10px;
   padding: 5px 9px;
+}
+
+.book-lifecycle-panel {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 18px 24px;
+  align-items: center;
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  background: var(--surface);
+  padding: 22px;
+}
+
+.book-lifecycle-copy h2 {
+  margin: 4px 0 6px;
+  font-family: Georgia, "Yu Mincho", serif;
+  font-size: 22px;
+}
+
+.book-lifecycle-copy p,
+.danger-zone-body p {
+  margin: 0;
+  color: var(--ink-soft);
+  font-size: 12px;
+  line-height: 1.7;
+}
+
+.danger-zone {
+  grid-column: 1 / -1;
+  border-top: 1px solid var(--line);
+  padding-top: 14px;
+}
+
+.danger-zone summary {
+  width: fit-content;
+  cursor: pointer;
+  color: var(--danger);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.danger-zone-body {
+  display: grid;
+  gap: 13px;
+  margin-top: 14px;
+  border: 1px solid color-mix(in srgb, var(--danger) 25%, var(--line));
+  border-radius: 13px;
+  background: color-mix(in srgb, var(--danger) 4%, var(--surface));
+  padding: 16px;
+}
+
+.danger-zone-body label {
+  display: grid;
+  gap: 7px;
+  font-size: 12px;
+}
+
+.danger-zone-body input {
+  min-height: 43px;
+  border: 1px solid var(--line-strong);
+  border-radius: 10px;
+  background: var(--surface);
+  padding: 0 12px;
+}
+
+.danger-zone-body .danger-button {
+  width: fit-content;
+}
+
+.lifecycle-message {
+  grid-column: 1 / -1;
 }
 
 .detail-notes {
@@ -2273,6 +2379,17 @@ button:disabled {
   .book-detail-main h1 {
     margin-top: 10px;
     font-size: 24px;
+  }
+  .book-lifecycle-panel {
+    grid-template-columns: 1fr;
+    padding: 17px;
+  }
+  .book-lifecycle-panel > .secondary-button,
+  .danger-zone-body .danger-button {
+    width: 100%;
+  }
+  .danger-zone {
+    grid-column: 1;
   }
   .detail-circle {
     font-size: 11px;

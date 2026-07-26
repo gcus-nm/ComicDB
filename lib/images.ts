@@ -87,6 +87,19 @@ export async function readMedia(relativePath: string) {
   return readFile(resolved);
 }
 
+export async function removeStoredMedia(relativePaths: string[]) {
+  const mediaBase = path.join(dataDirectory(), "media");
+  await Promise.all(
+    relativePaths.map(async (relativePath) => {
+      const resolved = path.resolve(dataDirectory(), relativePath);
+      if (!resolved.startsWith(`${mediaBase}${path.sep}`)) {
+        throw new HttpError(400, "不正な画像パスです。");
+      }
+      await rm(resolved, { force: true });
+    }),
+  );
+}
+
 export async function writeTestImage(relativePath: string, bytes: Uint8Array) {
   const target = path.join(dataDirectory(), relativePath);
   await mkdir(path.dirname(target), { recursive: true });

@@ -3,7 +3,13 @@ import type { z } from "zod";
 import { getDb } from "@/db";
 import type { bookInputSchema, eventInputSchema } from "./validators";
 import { diceSimilarity, normalizeSearchText, normalizeText, splitNames } from "./normalize";
-import type { BookDetail, BookSummary, EventSummary, TagType } from "./types";
+import type {
+  BookDetail,
+  BookSummary,
+  EventSummary,
+  OwnershipStatus,
+  TagType,
+} from "./types";
 
 type BookInput = z.infer<typeof bookInputSchema>;
 type EventInput = z.infer<typeof eventInputSchema>;
@@ -14,6 +20,8 @@ type BookRow = {
   adult_rating: "general" | "r18";
   edition: string;
   read_status: "unread" | "reading" | "read";
+  ownership_status: OwnershipStatus;
+  disposed_at: string | null;
   favorite: number;
   notes: string;
   cover_path: string | null;
@@ -44,6 +52,8 @@ function toSummary(row: BookRow): BookSummary {
     adultRating: row.adult_rating,
     edition: row.edition,
     readStatus: row.read_status,
+    ownershipStatus: row.ownership_status,
+    disposedAt: row.disposed_at,
     favorite: Boolean(row.favorite),
     notes: row.notes,
     coverUrl: row.cover_path ? `/api/media/${row.cover_path}` : null,
@@ -65,6 +75,8 @@ const BOOK_SELECT = `
     b.adult_rating,
     b.edition,
     b.read_status,
+    b.ownership_status,
+    b.disposed_at,
     b.favorite,
     b.notes,
     b.cover_path,
@@ -125,6 +137,7 @@ export type BookFilters = {
   q?: string;
   adultRating?: string;
   readStatus?: string;
+  ownershipStatus?: string;
   favorite?: boolean;
   eventId?: string;
   storageId?: string;
@@ -172,6 +185,11 @@ export function listBooks(filters: BookFilters = {}) {
   if (["unread", "reading", "read"].includes(filters.readStatus ?? "")) {
     clauses.push("b.read_status = ?");
     params.push(filters.readStatus);
+  }
+  const ownershipStatus = filters.ownershipStatus ?? "owned";
+  if (ownershipStatus === "owned" || ownershipStatus === "disposed") {
+    clauses.push("b.ownership_status = ?");
+    params.push(ownershipStatus);
   }
   if (filters.favorite) clauses.push("b.favorite = 1");
   if (filters.eventId) {
@@ -461,9 +479,9 @@ export function createBook(
     db.prepare(
       `INSERT INTO books (
         id, title, normalized_title, adult_rating, published_on, edition,
-        storage_location_id, read_status, favorite, notes, cover_path,
-        thumbnail_path, created_at, updated_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        storage_location_id, read_status, ownership_status, disposed_at,
+        favorite, notes, cover_path, thumbnail_path, created_at, updated_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     ).run(
       id,
       input.title,
@@ -473,6 +491,8 @@ export function createBook(
       input.edition,
       storageLocationId || null,
       input.readStatus,
+      input.ownershipStatus,
+      input.ownershipStatus === "disposed" ? now : null,
       input.favorite ? 1 : 0,
       input.notes,
       media?.coverPath ?? null,
@@ -488,6 +508,13 @@ export function createBook(
       quantity: input.quantity,
       notes: input.acquisitionNotes,
     });
+    if (input.ownershipStatus === "disposed") {
+      db.prepare(
+        `UPDATE books
+         SET ownership_status = 'disposed', disposed_at = ?, updated_at = ?
+         WHERE id = ?`,
+      ).run(now, now, id);
+    }
   });
   transaction();
   syncBookSearch(id);
@@ -505,8 +532,9 @@ export function updateBook(id: string, input: BookInput) {
     db.prepare(
       `UPDATE books SET
         title = ?, normalized_title = ?, adult_rating = ?, published_on = ?,
-        edition = ?, storage_location_id = ?, read_status = ?, favorite = ?,
-        notes = ?, updated_at = ?
+        edition = ?, storage_location_id = ?, read_status = ?,
+        ownership_status = ?, disposed_at = ?, favorite = ?, notes = ?,
+        updated_at = ?
        WHERE id = ?`,
     ).run(
       input.title,
@@ -516,6 +544,10 @@ export function updateBook(id: string, input: BookInput) {
       input.edition,
       storageLocationId || null,
       input.readStatus,
+      input.ownershipStatus,
+      input.ownershipStatus === "disposed"
+        ? current.disposedAt ?? now
+        : null,
       input.favorite ? 1 : 0,
       input.notes,
       now,
@@ -560,11 +592,48 @@ export function addAcquisition(
     input.notes ?? "",
     new Date().toISOString(),
   );
-  db.prepare("UPDATE books SET updated_at = ? WHERE id = ?").run(
-    new Date().toISOString(),
-    bookId,
-  );
+  db.prepare(
+    `UPDATE books
+     SET ownership_status = 'owned', disposed_at = NULL, updated_at = ?
+     WHERE id = ?`,
+  ).run(new Date().toISOString(), bookId);
   return getBook(bookId);
+}
+
+export function setBookOwnershipStatus(
+  id: string,
+  ownershipStatus: OwnershipStatus,
+) {
+  const now = new Date().toISOString();
+  const result = getDb()
+    .sqlite.prepare(
+      `UPDATE books
+       SET ownership_status = ?,
+           disposed_at = CASE WHEN ? = 'disposed' THEN COALESCE(disposed_at, ?) ELSE NULL END,
+           updated_at = ?
+       WHERE id = ?`,
+    )
+    .run(ownershipStatus, ownershipStatus, now, now, id);
+  return result.changes ? getBook(id) : null;
+}
+
+export function deleteBook(id: string) {
+  const db = getDb().sqlite;
+  const row = db
+    .prepare("SELECT cover_path, thumbnail_path FROM books WHERE id = ?")
+    .get(id) as
+    | { cover_path: string | null; thumbnail_path: string | null }
+    | undefined;
+  if (!row) return null;
+  db.transaction(() => {
+    if (getDb().ftsAvailable) {
+      db.prepare("DELETE FROM books_search WHERE book_id = ?").run(id);
+    }
+    db.prepare("DELETE FROM books WHERE id = ?").run(id);
+  })();
+  return [row.cover_path, row.thumbnail_path].filter(
+    (value): value is string => Boolean(value),
+  );
 }
 
 export function findDuplicateCandidates(title: string, circle = "") {
@@ -686,11 +755,17 @@ export function dashboardStats() {
         COUNT(*) AS books,
         COALESCE(SUM(CASE WHEN read_status = 'unread' THEN 1 ELSE 0 END), 0) AS unread,
         COALESCE(SUM(CASE WHEN favorite = 1 THEN 1 ELSE 0 END), 0) AS favorites
-       FROM books`,
+       FROM books
+       WHERE ownership_status = 'owned'`,
     )
     .get() as { books: number; unread: number; favorites: number };
   const quantities = db
-    .prepare("SELECT COALESCE(SUM(quantity), 0) AS copies FROM acquisitions")
+    .prepare(
+      `SELECT COALESCE(SUM(a.quantity), 0) AS copies
+       FROM acquisitions a
+       JOIN books b ON b.id = a.book_id
+       WHERE b.ownership_status = 'owned'`,
+    )
     .get() as { copies: number };
   return { ...counts, copies: quantities.copies };
 }

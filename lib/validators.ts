@@ -23,6 +23,7 @@ export const bookInputSchema = z.object({
   storageLocationId: z.string().trim().optional().nullable(),
   storageLocation: z.string().trim().max(120).optional(),
   readStatus: z.enum(["unread", "reading", "read"]).default("unread"),
+  ownershipStatus: z.enum(["owned", "disposed"]).default("owned"),
   favorite: z.coerce.boolean().default(false),
   notes: z.string().trim().max(5000).optional().default(""),
   eventId: z.string().trim().optional().nullable(),
@@ -30,6 +31,10 @@ export const bookInputSchema = z.object({
   priceYen: z.coerce.number().int().min(0).max(10_000_000).optional().nullable(),
   quantity: z.coerce.number().int().min(1).max(99).default(1),
   acquisitionNotes: z.string().trim().max(1000).optional().default(""),
+});
+
+export const ownershipStatusInputSchema = z.object({
+  ownershipStatus: z.enum(["owned", "disposed"]),
 });
 
 export const eventInputSchema = z.object({
