@@ -1,7 +1,6 @@
 "use client";
 
 import { useRef, useState } from "react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
   AlertTriangle,
@@ -15,6 +14,10 @@ import {
 import type { BookSummary } from "@/lib/types";
 import type { TaxonomyTag } from "@/lib/catalog";
 import { TaxonomyFields } from "@/components/taxonomy-picker";
+import {
+  EventQuickCreate,
+  type SelectableEvent,
+} from "@/components/event-quick-create";
 
 type Duplicate = BookSummary & { score: number; circleMatch: boolean };
 
@@ -37,6 +40,16 @@ export function BookForm({
   const [notice, setNotice] = useState("");
   const [duplicates, setDuplicates] = useState<Duplicate[]>([]);
   const [savedCount, setSavedCount] = useState(0);
+  const [availableEvents, setAvailableEvents] = useState(events);
+  const [selectedEventId, setSelectedEventId] = useState("");
+
+  function addCreatedEvent(created: SelectableEvent) {
+    setAvailableEvents((current) => [
+      created,
+      ...current.filter((item) => item.id !== created.id),
+    ]);
+    setSelectedEventId(created.id);
+  }
 
   async function checkDuplicates() {
     const form = formRef.current;
@@ -83,6 +96,7 @@ export function BookForm({
     }
     if (continuous) {
       eventObject.currentTarget.reset();
+      if (!event) setSelectedEventId("");
       setDuplicates([]);
       setSavedCount((count) => count + 1);
       setNotice(`「${body.title}」を登録しました。次の本を入力できます。`);
@@ -109,7 +123,7 @@ export function BookForm({
         "X-ComicDB-Request": "1",
       },
       body: JSON.stringify({
-        eventId: event?.id ?? null,
+        eventId: event?.id ?? (data.get("eventId") || null),
         purchasedOn: data.get("purchasedOn") || event?.startsOn || "",
         priceYen: data.get("priceYen") || null,
         quantity: data.get("quantity") || 1,
@@ -121,6 +135,7 @@ export function BookForm({
       setError(body.error ?? "購入履歴の追加に失敗しました。");
     } else {
       form.reset();
+      if (!event) setSelectedEventId("");
       setDuplicates([]);
       setSavedCount((count) => count + 1);
       setNotice(
@@ -253,24 +268,30 @@ export function BookForm({
               <span className="field-hint">このイベントの購入品として登録します。</span>
             </label>
           ) : (
-            <label>
-              購入イベント
-              <select name="eventId" defaultValue="">
+            <div className="book-event-field">
+              <label htmlFor="book-event-select">購入イベント</label>
+              <select
+                id="book-event-select"
+                name="eventId"
+                value={selectedEventId}
+                onChange={(eventObject) => setSelectedEventId(eventObject.target.value)}
+              >
                 <option value="">イベント未指定</option>
-                {events.map((item) => (
+                {availableEvents.map((item) => (
                   <option key={item.id} value={item.id}>
                     {item.startsOn}　{item.name}
                   </option>
                 ))}
               </select>
               <span className="field-hint">
-                {events.length ? (
+                {availableEvents.length ? (
                   "登録済みイベントから選択できます。"
                 ) : (
-                  <>選択肢がありません。<Link href="/events/new">イベントを作成</Link></>
+                  "イベントがまだありません。下から追加できます。"
                 )}
               </span>
-            </label>
+              <EventQuickCreate onCreated={addCreatedEvent} />
+            </div>
           )}
           <label>
             発行日
