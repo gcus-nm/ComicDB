@@ -98,8 +98,8 @@ export function TaxonomyFields({
   if (!fandoms.length) {
     return (
       <div className="taxonomy-empty span-2">
-        原作がまだ登録されていません。
-        <Link href="/manage#taxonomy-manager">管理画面で原作を追加</Link>
+        作品がまだ登録されていません。
+        <Link href="/manage#taxonomy-manager">管理画面で作品を追加</Link>
       </div>
     );
   }
@@ -107,12 +107,12 @@ export function TaxonomyFields({
   return (
     <>
       <Picker
-        label="原作"
+        label="作品"
         name="fandomTagIds"
         options={fandoms}
         selected={selectedFandoms}
         onToggle={toggleFandom}
-        emptyMessage="原作がありません。"
+        emptyMessage="作品がありません。"
       />
       <Picker
         label="キャラクター"
@@ -120,7 +120,7 @@ export function TaxonomyFields({
         options={characters}
         selected={selectedCharacters}
         onToggle={(id, checked) => toggle(setSelectedCharacters, id, checked)}
-        emptyMessage={selectedFandoms.length ? "この原作には未登録です。" : "原作を選択すると表示されます。"}
+        emptyMessage={selectedFandoms.length ? "この作品には未登録です。" : "作品を選択すると表示されます。"}
       />
       <Picker
         label="カップリング"
@@ -128,7 +128,7 @@ export function TaxonomyFields({
         options={pairings}
         selected={selectedPairings}
         onToggle={(id, checked) => toggle(setSelectedPairings, id, checked)}
-        emptyMessage={selectedFandoms.length ? "この原作には未登録です。" : "原作を選択すると表示されます。"}
+        emptyMessage={selectedFandoms.length ? "この作品には未登録です。" : "作品を選択すると表示されます。"}
       />
     </>
   );

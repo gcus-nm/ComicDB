@@ -17,7 +17,7 @@ export function BookFilters({
         <input
           name="q"
           defaultValue={query.q}
-          placeholder="タイトル・サークル・作者・原作"
+          placeholder="タイトル・サークル・作者・作品"
           aria-label="検索語"
         />
       </div>

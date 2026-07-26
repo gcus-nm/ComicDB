@@ -40,7 +40,7 @@ const createdFandom = await request("/api/taxonomies", {
 });
 assert(
   createdFandom.response.status === 201 && createdFandom.body.id,
-  `原作マスターの登録に失敗しました: ${JSON.stringify(createdFandom.body)}`,
+  `作品マスターの登録に失敗しました: ${JSON.stringify(createdFandom.body)}`,
 );
 for (const taxonomy of [
   { type: "character", name: "主人公", parentId: createdFandom.body.id },
