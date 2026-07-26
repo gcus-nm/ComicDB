@@ -8,6 +8,7 @@ export async function GET(request: Request) {
     return new Response(exportCsv(), {
       headers: {
         "Content-Type": "text/csv; charset=utf-8",
+        "Cache-Control": "private, no-store",
         "Content-Disposition": 'attachment; filename="comicdb-export.csv"',
       },
     });

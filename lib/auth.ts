@@ -155,7 +155,7 @@ export function readSession(token: string | undefined) {
     | undefined;
   if (!row) return null;
   db.prepare("UPDATE sessions SET last_seen_at = ? WHERE id = ?").run(now, row.session_id);
-  return { id: row.id, username: row.username };
+  return { id: row.id, username: row.username, sessionId: row.session_id };
 }
 
 export async function currentUser() {

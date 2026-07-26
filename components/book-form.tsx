@@ -231,7 +231,7 @@ export function BookForm({
               <option value="r18">R18</option>
             </select>
           </label>
-          <TaxonomyFields taxonomies={taxonomies} />
+          <TaxonomyFields taxonomies={taxonomies} allowTaxonomyCreate />
           <label>
             ジャンル
             <input name="genres" placeholder="漫画、小説、イラスト" />

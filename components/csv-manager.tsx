@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { Download, FileSpreadsheet, LoaderCircle, Upload } from "lucide-react";
+import { Download, FileText, LoaderCircle, Upload } from "lucide-react";
 
 type PreviewRow = {
   rowNumber: number;
@@ -21,43 +21,53 @@ export function CsvManager() {
     if (!file) return;
     setPending(true);
     setMessage("");
-    const form = new FormData();
-    form.set("file", file);
-    const response = await fetch(`/api/csv/${endpoint}`, {
-      method: "POST",
-      headers: { "X-ComicDB-Request": "1" },
-      body: form,
-    });
-    const body = (await response.json()) as {
-      rows?: PreviewRow[];
-      imported?: number;
-      error?: string;
-    };
-    if (!response.ok) {
-      setMessage(body.error ?? "CSVを処理できませんでした。");
-    } else if (endpoint === "preflight") {
-      setRows(body.rows ?? []);
-      const invalid = body.rows?.filter((row) => row.errors.length).length ?? 0;
-      setMessage(invalid ? `${invalid}行に修正が必要です。` : "内容を確認して取込を実行してください。");
-    } else {
-      setMessage(`${body.imported ?? 0}タイトルを取り込みました。`);
-      setRows([]);
-      setFile(null);
-      if (inputRef.current) inputRef.current.value = "";
+    try {
+      const form = new FormData();
+      form.set("file", file);
+      const response = await fetch(`/api/csv/${endpoint}`, {
+        method: "POST",
+        headers: { "X-ComicDB-Request": "1" },
+        body: form,
+      });
+      const body = (await response.json()) as {
+        rows?: PreviewRow[];
+        imported?: number;
+        error?: string;
+      };
+      if (!response.ok) {
+        setMessage(body.error ?? "CSVを処理できませんでした。");
+      } else if (endpoint === "preflight") {
+        setRows(body.rows ?? []);
+        const invalid =
+          body.rows?.filter((row) => row.errors.length).length ?? 0;
+        setMessage(
+          invalid
+            ? `${invalid}行に修正が必要です。`
+            : "内容を確認して取込を実行してください。",
+        );
+      } else {
+        setMessage(`${body.imported ?? 0}タイトルを取り込みました。`);
+        setRows([]);
+        setFile(null);
+        if (inputRef.current) inputRef.current.value = "";
+      }
+    } catch {
+      setMessage("通信に失敗しました。時間をおいて再度お試しください。");
+    } finally {
+      setPending(false);
     }
-    setPending(false);
   }
 
   const invalid = rows.some((row) => row.errors.length);
   return (
     <div className="settings-card" id="csv-manager">
-      <div className="settings-card-icon"><FileSpreadsheet size={22} /></div>
+      <div className="settings-card-icon"><FileText size={22} /></div>
       <div className="settings-card-body">
         <h2>CSV入出力</h2>
-        <p>表計算でまとめた蔵書を確認してから取り込めます。</p>
+        <p>CSVで蔵書を事前確認してから取り込み、または全件を書き出せます。</p>
         <div className="button-row">
-          <a href="/api/csv/template" className="secondary-button"><Download size={17} />テンプレート</a>
-          <a href="/api/csv/export" className="secondary-button"><Download size={17} />全件エクスポート</a>
+          <a href="/api/csv/template" className="secondary-button" aria-label="CSVテンプレート"><Download size={17} />テンプレート</a>
+          <a href="/api/csv/export" className="secondary-button" aria-label="CSV全件エクスポート"><Download size={17} />全件エクスポート</a>
         </div>
         <label className="file-drop">
           <Upload size={22} />
@@ -75,7 +85,7 @@ export function CsvManager() {
         </label>
         {file && !rows.length ? (
           <button className="primary-button" type="button" onClick={() => upload("preflight")} disabled={pending}>
-            {pending ? <LoaderCircle className="spin" size={18} /> : <FileSpreadsheet size={18} />}内容を確認
+            {pending ? <LoaderCircle className="spin" size={18} /> : <FileText size={18} />}内容を確認
           </button>
         ) : null}
         {rows.length ? (

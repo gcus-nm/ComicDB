@@ -29,10 +29,22 @@ export function clientAddress(request: Request) {
 }
 
 export function errorResponse(error: unknown) {
+  const headers = { "Cache-Control": "private, no-store" };
   if (error instanceof HttpError) {
-    return Response.json({ error: error.message }, { status: error.status });
+    return Response.json(
+      { error: error.message },
+      { status: error.status, headers },
+    );
   }
   const message = error instanceof Error ? error.message : "処理に失敗しました。";
-  console.error(error);
-  return Response.json({ error: message }, { status: 500 });
+  if (/invalid_grant/iu.test(message)) {
+    return Response.json(
+      { error: "Googleの認可が失効しています。接続し直してください。" },
+      { status: 401, headers },
+    );
+  }
+  console.error(
+    error instanceof Error ? error.stack ?? `${error.name}: ${error.message}` : message,
+  );
+  return Response.json({ error: message }, { status: 500, headers });
 }

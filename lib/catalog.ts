@@ -357,7 +357,7 @@ function replaceRelationships(bookId: string, input: BookInput, now: string) {
       const tag = db
         .prepare("SELECT id FROM tags WHERE id = ? AND type = 'fandom'")
         .get(id) as { id: string } | undefined;
-      if (!tag) throw new Error("選択された原作が見つかりません。");
+      if (!tag) throw new Error("選択された作品が見つかりません。");
       addTag(tag.id);
     }
   } else {
@@ -378,7 +378,7 @@ function replaceRelationships(bookId: string, input: BookInput, now: string) {
         .get(id, type) as { id: string; parent_tag_id: string | null } | undefined;
       if (!tag) throw new Error("選択された分類が見つかりません。");
       if (tag.parent_tag_id && !selectedFandomIds.includes(tag.parent_tag_id)) {
-        throw new Error("選択した原作に属さない分類が含まれています。");
+        throw new Error("選択した作品に属さない分類が含まれています。");
       }
       addTag(tag.id);
     }
@@ -851,7 +851,7 @@ export function createTaxonomyTag(
     const parent = getDb().sqlite
       .prepare("SELECT id FROM tags WHERE id = ? AND type = 'fandom'")
       .get(parentId) as { id: string } | undefined;
-    if (!parent) throw new Error("所属する原作を選択してください。");
+    if (!parent) throw new Error("所属する作品を選択してください。");
   }
   const existing = getDb().sqlite
     .prepare(
@@ -879,7 +879,7 @@ export function updateTaxonomyTagParent(id: string, parentId: string) {
   const parent = db
     .prepare("SELECT id FROM tags WHERE id = ? AND type = 'fandom'")
     .get(parentId) as { id: string } | undefined;
-  if (!parent) throw new Error("所属する原作を選択してください。");
+  if (!parent) throw new Error("所属する作品を選択してください。");
   db.prepare("UPDATE tags SET parent_tag_id = ? WHERE id = ?").run(parent.id, tag.id);
   return listTaxonomyTags().find((item) => item.id === id)!;
 }
@@ -902,6 +902,6 @@ export function deleteTaxonomyTag(id: string) {
   const child = db
     .prepare("SELECT id FROM tags WHERE parent_tag_id = ? LIMIT 1")
     .get(id) as { id: string } | undefined;
-  if (child) throw new Error("子要素が登録されている原作は削除できません。");
+  if (child) throw new Error("子要素が登録されている作品は削除できません。");
   db.prepare("DELETE FROM tags WHERE id = ?").run(id);
 }

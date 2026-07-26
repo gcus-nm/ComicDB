@@ -23,7 +23,7 @@ export default function DashboardPage() {
         <div className="hero-copy">
           <span className="eyebrow">PRIVATE COLLECTION</span>
           <h1>あの本、持ってたっけ？</h1>
-          <p>タイトル、サークル、作者、原作からすぐに所持確認できます。</p>
+          <p>タイトル、サークル、作者、作品からすぐに所持確認できます。</p>
         </div>
         <form action="/books" className="hero-search">
           <Search size={21} aria-hidden="true" />
