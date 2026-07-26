@@ -1109,6 +1109,32 @@ button:disabled {
   text-underline-offset: 2px;
 }
 
+.book-event-field {
+  display: grid;
+  align-content: start;
+  gap: 7px;
+}
+
+.book-event-field > label {
+  color: var(--ink-soft);
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.event-quick-form {
+  grid-template-columns: minmax(0, 1fr) minmax(145px, 0.65fr);
+}
+
+.event-quick-actions {
+  display: flex;
+  grid-column: 1 / -1;
+  gap: 6px;
+}
+
+.event-quick-error {
+  color: var(--danger);
+}
+
 .form-grid input,
 .form-grid select,
 .form-grid textarea,
@@ -2457,6 +2483,12 @@ button:disabled {
   }
   .form-grid {
     grid-template-columns: 1fr;
+  }
+  .event-quick-form {
+    grid-template-columns: 1fr;
+  }
+  .event-quick-actions {
+    grid-column: auto;
   }
   .span-2 {
     grid-column: auto;
