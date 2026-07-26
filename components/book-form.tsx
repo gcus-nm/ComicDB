@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   AlertTriangle,
@@ -42,6 +42,27 @@ export function BookForm({
   const [savedCount, setSavedCount] = useState(0);
   const [availableEvents, setAvailableEvents] = useState(events);
   const [selectedEventId, setSelectedEventId] = useState("");
+  const [coverPreview, setCoverPreview] = useState<{
+    url: string;
+    fileName: string;
+  } | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (coverPreview) URL.revokeObjectURL(coverPreview.url);
+    };
+  }, [coverPreview]);
+
+  function selectCover(file?: File) {
+    setCoverPreview(
+      file
+        ? {
+            url: URL.createObjectURL(file),
+            fileName: file.name,
+          }
+        : null,
+    );
+  }
 
   function addCreatedEvent(created: SelectableEvent) {
     setAvailableEvents((current) => [
@@ -96,6 +117,7 @@ export function BookForm({
     }
     if (continuous) {
       eventObject.currentTarget.reset();
+      setCoverPreview(null);
       if (!event) setSelectedEventId("");
       setDuplicates([]);
       setSavedCount((count) => count + 1);
@@ -135,6 +157,7 @@ export function BookForm({
       setError(body.error ?? "購入履歴の追加に失敗しました。");
     } else {
       form.reset();
+      setCoverPreview(null);
       if (!event) setSelectedEventId("");
       setDuplicates([]);
       setSavedCount((count) => count + 1);
@@ -227,15 +250,39 @@ export function BookForm({
             <p>表紙があると会場でも素早く見分けられます。</p>
           </div>
         </div>
-        <label className="cover-upload">
-          <Camera size={27} />
-          <strong>表紙を撮影・選択</strong>
-          <span>JPEG・PNG・WebP・AVIF / 最大20MB</span>
+        <label className={`cover-upload${coverPreview ? " has-preview" : ""}`}>
+          {coverPreview ? (
+            <>
+              {/* Blob URLはNext.js Imageの最適化対象外なので、選択直後のローカル表示にはimgを使う。 */}
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                className="cover-upload-preview"
+                src={coverPreview.url}
+                alt="選択した表紙のプレビュー"
+              />
+              <span className="cover-upload-copy" aria-live="polite">
+                <span className="cover-upload-status">
+                  <Camera size={16} />
+                  表紙を選択済み
+                </span>
+                <strong title={coverPreview.fileName}>{coverPreview.fileName}</strong>
+                <span>クリックして別の画像を選択</span>
+                <span>JPEG・PNG・WebP・AVIF / 最大20MB</span>
+              </span>
+            </>
+          ) : (
+            <>
+              <Camera size={27} />
+              <strong>表紙を撮影・選択</strong>
+              <span>JPEG・PNG・WebP・AVIF / 最大20MB</span>
+            </>
+          )}
           <input
             name="cover"
             type="file"
             accept="image/jpeg,image/png,image/webp,image/avif"
             capture="environment"
+            onChange={(eventObject) => selectCover(eventObject.currentTarget.files?.[0])}
           />
         </label>
         <div className="form-grid">

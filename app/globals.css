@@ -1223,6 +1223,54 @@ button:disabled {
   color: var(--accent);
 }
 
+.cover-upload:focus-within {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(143, 47, 34, 0.08);
+}
+
+.cover-upload.has-preview {
+  min-height: 180px;
+  display: grid;
+  grid-template-columns: 118px minmax(0, 1fr);
+  justify-content: stretch;
+  gap: 18px;
+  padding: 12px;
+  text-align: left;
+}
+
+.cover-upload-preview {
+  width: 118px;
+  height: 156px;
+  border-radius: 9px;
+  background: var(--paper-deep);
+  box-shadow: 0 5px 16px rgba(72, 55, 42, 0.14);
+  object-fit: cover;
+}
+
+.cover-upload-copy {
+  display: flex;
+  min-width: 0;
+  align-items: flex-start;
+  align-self: center;
+  flex-direction: column;
+  gap: 7px;
+}
+
+.cover-upload-copy strong {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cover-upload-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--accent);
+  font-weight: 700;
+}
+
 .cover-upload strong {
   color: var(--ink);
   font-size: 13px;
@@ -2496,6 +2544,15 @@ button:disabled {
   .form-section {
     border-radius: 15px;
     padding: 20px 17px;
+  }
+  .cover-upload.has-preview {
+    min-height: 148px;
+    grid-template-columns: 92px minmax(0, 1fr);
+    gap: 13px;
+  }
+  .cover-upload-preview {
+    width: 92px;
+    height: 122px;
   }
   .details-grid {
     padding: 20px 17px;
