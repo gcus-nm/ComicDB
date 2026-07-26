@@ -8,15 +8,21 @@ import {
   createBook,
   createEvent,
   createTaxonomyTag,
+  createWishlistItem,
   deleteBook,
   deleteTaxonomyTag,
+  deleteWishlistItem,
   findDuplicateCandidates,
   getBook,
   listBooks,
+  listEvents,
   listTaxonomyTags,
+  listWishlistItems,
   setBookOwnershipStatus,
+  updateWishlistItem,
 } from "@/lib/catalog";
 import { exportCsv, importCsv, preflightCsv } from "@/lib/csv";
+import { wishlistItemUpdateSchema } from "@/lib/validators";
 
 let tempDir = "";
 
@@ -139,5 +145,54 @@ describe("蔵書管理", () => {
     expect(character.parentId).toBe(fandom.id);
     deleteTaxonomyTag(character.id);
     expect(listTaxonomyTags().map((tag) => tag.id)).not.toContain(character.id);
+  });
+
+  it("イベントごとのほしいものを追加・更新・削除できる", () => {
+    const event = createEvent({
+      name: "コミックマーケット",
+      startsOn: "2026-08-15",
+      endsOn: "",
+      venue: "東京ビッグサイト",
+      notes: "",
+    })!;
+    const item = createWishlistItem(event.id, {
+      title: "新刊セット",
+      circle: "星空書房",
+      booth: "東A-01a",
+      quantity: 2,
+      priceYen: 1000,
+      notes: "会場限定",
+      purchased: false,
+    })!;
+    expect(wishlistItemUpdateSchema.parse({ purchased: true })).toEqual({
+      purchased: true,
+    });
+
+    expect(listWishlistItems(event.id)).toEqual([item]);
+    expect(listEvents()[0]).toMatchObject({
+      wishlistCount: 1,
+      wishlistRemainingCount: 1,
+    });
+
+    const updated = updateWishlistItem(item.id, {
+      purchased: true,
+      quantity: 1,
+    });
+    expect(updated).toMatchObject({
+      purchased: true,
+      quantity: 1,
+      circle: "星空書房",
+      booth: "東A-01a",
+      priceYen: 1000,
+      notes: "会場限定",
+    });
+    expect(listEvents()[0]).toMatchObject({
+      wishlistCount: 1,
+      wishlistRemainingCount: 0,
+    });
+
+    expect(deleteWishlistItem(item.id)).toBe(true);
+    expect(deleteWishlistItem(item.id)).toBe(false);
+    expect(listWishlistItems(event.id)).toEqual([]);
   });
 });

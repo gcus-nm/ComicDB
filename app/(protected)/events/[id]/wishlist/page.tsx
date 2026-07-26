@@ -1,0 +1,59 @@
+import Link from "next/link";
+import { notFound } from "next/navigation";
+import {
+  BookPlus,
+  CalendarDays,
+  ChevronLeft,
+  MapPin,
+} from "lucide-react";
+import { WishlistManager } from "@/components/wishlist-manager";
+import { getEvent, listWishlistItems } from "@/lib/catalog";
+
+export const metadata = { title: "イベントのほしいものリスト" };
+
+export default async function EventWishlistPage({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}) {
+  const { id } = await params;
+  const event = getEvent(id);
+  if (!event) notFound();
+  const items = listWishlistItems(id);
+
+  return (
+    <div className="page-stack narrow-page wishlist-page">
+      <Link href="/wishlist" className="back-link">
+        <ChevronLeft size={17} />
+        ほしいものリスト一覧へ
+      </Link>
+      <section className="event-register-header wishlist-event-header">
+        <div className="event-badge">
+          <CalendarDays size={24} />
+        </div>
+        <div>
+          <span className="eyebrow">EVENT WISHLIST</span>
+          <h1>{event.name}</h1>
+          <p>
+            {event.starts_on.replaceAll("-", ".")}
+            {event.venue ? (
+              <>
+                <span>·</span>
+                <MapPin size={14} />
+                {event.venue}
+              </>
+            ) : null}
+          </p>
+        </div>
+        <Link
+          href={`/events/${event.id}/register`}
+          className="secondary-button wishlist-register-link"
+        >
+          <BookPlus size={17} />
+          購入品を登録
+        </Link>
+      </section>
+      <WishlistManager eventId={event.id} initialItems={items} />
+    </div>
+  );
+}

@@ -1,7 +1,12 @@
 import { randomUUID } from "node:crypto";
 import type { z } from "zod";
 import { getDb } from "@/db";
-import type { bookInputSchema, eventInputSchema } from "./validators";
+import type {
+  bookInputSchema,
+  eventInputSchema,
+  wishlistItemInputSchema,
+  wishlistItemUpdateSchema,
+} from "./validators";
 import { diceSimilarity, normalizeSearchText, normalizeText, splitNames } from "./normalize";
 import type {
   BookDetail,
@@ -9,10 +14,13 @@ import type {
   EventSummary,
   OwnershipStatus,
   TagType,
+  WishlistItem,
 } from "./types";
 
 type BookInput = z.infer<typeof bookInputSchema>;
 type EventInput = z.infer<typeof eventInputSchema>;
+type WishlistItemInput = z.infer<typeof wishlistItemInputSchema>;
+type WishlistItemUpdateInput = z.infer<typeof wishlistItemUpdateSchema>;
 
 type BookRow = {
   id: string;
@@ -693,7 +701,12 @@ export function getEvent(id: string) {
     .prepare(
       `SELECT e.*,
         COUNT(DISTINCT a.book_id) AS book_count,
-        COALESCE(SUM(a.quantity), 0) AS total_quantity
+        COALESCE(SUM(a.quantity), 0) AS total_quantity,
+        (SELECT COUNT(*) FROM wishlist_items w WHERE w.event_id = e.id)
+          AS wishlist_count,
+        (SELECT COUNT(*) FROM wishlist_items w
+          WHERE w.event_id = e.id AND w.purchased = 0)
+          AS wishlist_remaining_count
        FROM events e
        LEFT JOIN acquisitions a ON a.event_id = e.id
        WHERE e.id = ?
@@ -709,6 +722,8 @@ export function getEvent(id: string) {
         notes: string;
         book_count: number;
         total_quantity: number;
+        wishlist_count: number;
+        wishlist_remaining_count: number;
       }
     | undefined;
 }
@@ -718,7 +733,12 @@ export function listEvents(limit = 100): EventSummary[] {
     .prepare(
       `SELECT e.id, e.name, e.starts_on, e.ends_on, e.venue, e.notes,
         COUNT(DISTINCT a.book_id) AS book_count,
-        COALESCE(SUM(a.quantity), 0) AS total_quantity
+        COALESCE(SUM(a.quantity), 0) AS total_quantity,
+        (SELECT COUNT(*) FROM wishlist_items w WHERE w.event_id = e.id)
+          AS wishlist_count,
+        (SELECT COUNT(*) FROM wishlist_items w
+          WHERE w.event_id = e.id AND w.purchased = 0)
+          AS wishlist_remaining_count
        FROM events e
        LEFT JOIN acquisitions a ON a.event_id = e.id
        GROUP BY e.id
@@ -734,6 +754,8 @@ export function listEvents(limit = 100): EventSummary[] {
     notes: string;
     book_count: number;
     total_quantity: number;
+    wishlist_count: number;
+    wishlist_remaining_count: number;
   }>;
   return rows.map((row) => ({
     id: row.id,
@@ -744,7 +766,129 @@ export function listEvents(limit = 100): EventSummary[] {
     notes: row.notes,
     bookCount: row.book_count,
     totalQuantity: row.total_quantity,
+    wishlistCount: row.wishlist_count,
+    wishlistRemainingCount: row.wishlist_remaining_count,
   }));
+}
+
+type WishlistItemRow = {
+  id: string;
+  event_id: string;
+  title: string;
+  circle: string;
+  booth: string;
+  quantity: number;
+  price_yen: number | null;
+  notes: string;
+  purchased: number;
+  created_at: string;
+  updated_at: string;
+};
+
+function toWishlistItem(row: WishlistItemRow): WishlistItem {
+  return {
+    id: row.id,
+    eventId: row.event_id,
+    title: row.title,
+    circle: row.circle,
+    booth: row.booth,
+    quantity: row.quantity,
+    priceYen: row.price_yen,
+    notes: row.notes,
+    purchased: Boolean(row.purchased),
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+  };
+}
+
+function getWishlistItem(id: string) {
+  const row = getDb().sqlite
+    .prepare("SELECT * FROM wishlist_items WHERE id = ?")
+    .get(id) as WishlistItemRow | undefined;
+  return row ? toWishlistItem(row) : null;
+}
+
+export function listWishlistItems(eventId: string): WishlistItem[] {
+  const rows = getDb().sqlite
+    .prepare(
+      `SELECT * FROM wishlist_items
+       WHERE event_id = ?
+       ORDER BY purchased ASC, created_at ASC`,
+    )
+    .all(eventId) as WishlistItemRow[];
+  return rows.map(toWishlistItem);
+}
+
+export function createWishlistItem(
+  eventId: string,
+  input: WishlistItemInput,
+) {
+  const db = getDb().sqlite;
+  const event = db
+    .prepare("SELECT id FROM events WHERE id = ?")
+    .get(eventId) as { id: string } | undefined;
+  if (!event) return null;
+  const id = randomUUID();
+  const now = new Date().toISOString();
+  db.prepare(
+    `INSERT INTO wishlist_items (
+      id, event_id, title, circle, booth, quantity, price_yen, notes,
+      purchased, created_at, updated_at
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+  ).run(
+    id,
+    eventId,
+    input.title,
+    input.circle,
+    input.booth,
+    input.quantity,
+    input.priceYen ?? null,
+    input.notes,
+    input.purchased ? 1 : 0,
+    now,
+    now,
+  );
+  return getWishlistItem(id)!;
+}
+
+export function updateWishlistItem(
+  id: string,
+  input: WishlistItemUpdateInput,
+) {
+  const current = getWishlistItem(id);
+  if (!current) return null;
+  getDb()
+    .sqlite.prepare(
+      `UPDATE wishlist_items SET
+        title = ?, circle = ?, booth = ?, quantity = ?, price_yen = ?,
+        notes = ?, purchased = ?, updated_at = ?
+       WHERE id = ?`,
+    )
+    .run(
+      input.title ?? current.title,
+      input.circle ?? current.circle,
+      input.booth ?? current.booth,
+      input.quantity ?? current.quantity,
+      input.priceYen === undefined ? current.priceYen : input.priceYen,
+      input.notes ?? current.notes,
+      input.purchased === undefined
+        ? current.purchased
+          ? 1
+          : 0
+        : input.purchased
+          ? 1
+          : 0,
+      new Date().toISOString(),
+      id,
+    );
+  return getWishlistItem(id)!;
+}
+
+export function deleteWishlistItem(id: string) {
+  return (
+    getDb().sqlite.prepare("DELETE FROM wishlist_items WHERE id = ?").run(id)
+      .changes > 0
+  );
 }
 
 export function dashboardStats() {

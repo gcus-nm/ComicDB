@@ -1,6 +1,11 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import { CalendarDays, ChevronLeft, MapPin } from "lucide-react";
+import {
+  CalendarDays,
+  ChevronLeft,
+  ListChecks,
+  MapPin,
+} from "lucide-react";
 import { BookCard } from "@/components/book-card";
 import { BookForm } from "@/components/book-form";
 import { getEvent, listBooks, listTaxonomyTags } from "@/lib/catalog";
@@ -31,6 +36,13 @@ export default async function EventRegisterPage({
             {event.venue ? <><span>·</span><MapPin size={14} />{event.venue}</> : null}
           </p>
         </div>
+        <Link
+          href={`/events/${event.id}/wishlist`}
+          className="secondary-button wishlist-register-link"
+        >
+          <ListChecks size={17} />
+          ほしいものリスト
+        </Link>
       </section>
       <BookForm
         event={{ id: event.id, name: event.name, startsOn: event.starts_on }}

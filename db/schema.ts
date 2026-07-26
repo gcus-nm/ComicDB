@@ -192,6 +192,34 @@ export const events = sqliteTable(
   (table) => [index("events_starts_on_idx").on(table.startsOn)],
 );
 
+export const wishlistItems = sqliteTable(
+  "wishlist_items",
+  {
+    id: text("id").primaryKey(),
+    eventId: text("event_id")
+      .notNull()
+      .references(() => events.id, { onDelete: "cascade" }),
+    title: text("title").notNull(),
+    circle: text("circle").notNull().default(""),
+    booth: text("booth").notNull().default(""),
+    quantity: integer("quantity").notNull().default(1),
+    priceYen: integer("price_yen"),
+    notes: text("notes").notNull().default(""),
+    purchased: integer("purchased", { mode: "boolean" })
+      .notNull()
+      .default(false),
+    createdAt: text("created_at").notNull(),
+    updatedAt: text("updated_at").notNull(),
+  },
+  (table) => [
+    index("wishlist_items_event_idx").on(table.eventId),
+    index("wishlist_items_event_purchased_idx").on(
+      table.eventId,
+      table.purchased,
+    ),
+  ],
+);
+
 export const acquisitions = sqliteTable(
   "acquisitions",
   {

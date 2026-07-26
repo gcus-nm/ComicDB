@@ -3,6 +3,7 @@ import {
   BookOpen,
   Home,
   LibraryBig,
+  ListChecks,
   Plus,
   Settings,
   SlidersHorizontal,
@@ -12,6 +13,7 @@ import { PwaRegister } from "./pwa-register";
 const navigation = [
   { href: "/", label: "ホーム", icon: Home },
   { href: "/books", label: "蔵書", icon: LibraryBig },
+  { href: "/wishlist", label: "ほしいもの", icon: ListChecks },
   { href: "/manage", label: "管理", icon: SlidersHorizontal },
   { href: "/settings", label: "設定", icon: Settings },
 ];

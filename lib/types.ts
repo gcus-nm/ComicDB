@@ -53,4 +53,20 @@ export type EventSummary = {
   notes: string;
   bookCount: number;
   totalQuantity: number;
+  wishlistCount: number;
+  wishlistRemainingCount: number;
+};
+
+export type WishlistItem = {
+  id: string;
+  eventId: string;
+  title: string;
+  circle: string;
+  booth: string;
+  quantity: number;
+  priceYen: number | null;
+  notes: string;
+  purchased: boolean;
+  createdAt: string;
+  updatedAt: string;
 };
