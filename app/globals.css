@@ -1338,13 +1338,23 @@ button:disabled {
   margin-bottom: 0;
 }
 
-.edit-cover-actions {
+.cover-input-group {
+  display: grid;
+  gap: 7px;
+  margin-bottom: 21px;
+}
+
+.cover-input-group .cover-upload {
+  margin-bottom: 0;
+}
+
+.cover-actions {
   display: flex;
   flex-wrap: wrap;
   justify-content: flex-end;
 }
 
-.edit-cover-actions .ghost-button {
+.cover-actions .ghost-button {
   min-height: 36px;
 }
 

@@ -156,7 +156,7 @@ export function BookEditForm({
               }
             />
           </label>
-          <div className="edit-cover-actions">
+          <div className="cover-actions">
             {selectedCover ? (
               <button
                 className="ghost-button"
