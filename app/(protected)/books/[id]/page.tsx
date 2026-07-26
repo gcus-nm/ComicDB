@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import { BookCover } from "@/components/book-cover";
 import { BookEditForm } from "@/components/book-edit-form";
+import { BookLifecycleActions } from "@/components/book-lifecycle-actions";
 import { getBook, listTaxonomyTags } from "@/lib/catalog";
 
 export const metadata = { title: "蔵書詳細" };
@@ -34,6 +35,9 @@ export default async function BookDetailPage({
           <div className="detail-badges">
             <span>{book.adultRating === "r18" ? "R18" : "全年齢"}</span>
             <span>{book.readStatus === "read" ? "読了" : book.readStatus === "reading" ? "読書中" : "未読"}</span>
+            <span className={book.ownershipStatus === "disposed" ? "disposed-badge" : ""}>
+              {book.ownershipStatus === "disposed" ? "処分済み" : "所持中"}
+            </span>
             {book.favorite ? <span className="favorite-badge"><Heart size={14} fill="currentColor" />お気に入り</span> : null}
           </div>
           <h1>{book.title}</h1>
@@ -41,7 +45,10 @@ export default async function BookDetailPage({
           <dl className="detail-list">
             <div><dt><Users size={16} />作者</dt><dd>{book.creators.join(" / ") || "未登録"}</dd></div>
             <div><dt><MapPin size={16} />保管場所</dt><dd>{book.storageLocation || "未登録"}</dd></div>
-            <div><dt><BookMarked size={16} />所持数</dt><dd>{book.ownedCount || 1}冊</dd></div>
+            <div>
+              <dt><BookMarked size={16} />{book.ownershipStatus === "disposed" ? "購入記録" : "所持数"}</dt>
+              <dd>{book.ownedCount || 1}冊</dd>
+            </div>
             <div><dt><CalendarDays size={16} />発行日</dt><dd>{book.publishedOn || "未登録"}</dd></div>
           </dl>
           {book.tags.length ? (
@@ -76,6 +83,12 @@ export default async function BookDetailPage({
           </div>
         ) : <p className="muted">購入履歴はまだありません。</p>}
       </section>
+
+      <BookLifecycleActions
+        bookId={book.id}
+        title={book.title}
+        ownershipStatus={book.ownershipStatus}
+      />
     </div>
   );
 }

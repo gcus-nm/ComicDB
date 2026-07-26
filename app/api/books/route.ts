@@ -16,6 +16,7 @@ export async function GET(request: Request) {
         q: url.searchParams.get("q") ?? "",
         adultRating: url.searchParams.get("adultRating") ?? "",
         readStatus: url.searchParams.get("readStatus") ?? "",
+        ownershipStatus: url.searchParams.get("ownershipStatus") ?? undefined,
         favorite: url.searchParams.get("favorite") === "true",
         eventId: url.searchParams.get("eventId") ?? "",
         storageId: url.searchParams.get("storageId") ?? "",

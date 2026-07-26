@@ -74,6 +74,8 @@ export const books = sqliteTable(
       { onDelete: "set null" },
     ),
     readStatus: text("read_status").notNull().default("unread"),
+    ownershipStatus: text("ownership_status").notNull().default("owned"),
+    disposedAt: text("disposed_at"),
     favorite: integer("favorite", { mode: "boolean" }).notNull().default(false),
     notes: text("notes").notNull().default(""),
     coverPath: text("cover_path"),
@@ -83,6 +85,7 @@ export const books = sqliteTable(
   },
   (table) => [
     index("books_normalized_title_idx").on(table.normalizedTitle),
+    index("books_ownership_status_idx").on(table.ownershipStatus),
     index("books_updated_idx").on(table.updatedAt),
   ],
 );

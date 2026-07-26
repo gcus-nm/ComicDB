@@ -123,7 +123,11 @@ export function BookForm({
       form.reset();
       setDuplicates([]);
       setSavedCount((count) => count + 1);
-      setNotice(`「${book.title}」の追加購入を記録しました。`);
+      setNotice(
+        book.ownershipStatus === "disposed"
+          ? `「${book.title}」の再入手を記録し、所持中へ戻しました。`
+          : `「${book.title}」の追加購入を記録しました。`,
+      );
       router.refresh();
     }
     setPending(false);
@@ -181,10 +185,16 @@ export function BookForm({
                 <article key={book.id}>
                   <div>
                     <strong>{book.title}</strong>
-                    <span>{book.circles.join(" / ") || "サークル未登録"} · {book.ownedCount}冊所持</span>
+                    <span>
+                      {book.circles.join(" / ") || "サークル未登録"} ·{" "}
+                      {book.ownershipStatus === "disposed"
+                        ? `処分済み（購入記録${book.ownedCount}冊）`
+                        : `${book.ownedCount}冊所持`}
+                    </span>
                   </div>
                   <button type="button" onClick={() => addCopy(book)} disabled={pending}>
-                    <Plus size={16} /> この本を追加購入
+                    <Plus size={16} />{" "}
+                    {book.ownershipStatus === "disposed" ? "再入手として追加" : "この本を追加購入"}
                   </button>
                 </article>
               ))}

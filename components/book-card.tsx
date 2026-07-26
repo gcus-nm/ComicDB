@@ -5,7 +5,10 @@ import { BookCover } from "./book-cover";
 
 export function BookCard({ book, compact = false }: { book: BookSummary; compact?: boolean }) {
   return (
-    <Link href={`/books/${book.id}`} className={`book-card ${compact ? "compact" : ""}`}>
+    <Link
+      href={`/books/${book.id}`}
+      className={`book-card ${compact ? "compact" : ""} ${book.ownershipStatus === "disposed" ? "disposed" : ""}`}
+    >
       <BookCover
         src={book.thumbnailUrl}
         title={book.title}
@@ -18,7 +21,9 @@ export function BookCard({ book, compact = false }: { book: BookSummary; compact
         </div>
         <p>{book.circles.join(" / ") || "サークル未登録"}</p>
         <div className="book-meta-row">
-          <span>{book.ownedCount || 1}冊所持</span>
+          <span className={book.ownershipStatus === "disposed" ? "disposed-label" : ""}>
+            {book.ownershipStatus === "disposed" ? "処分済み" : `${book.ownedCount || 1}冊所持`}
+          </span>
           {book.storageLocation ? (
             <span>
               <MapPin size={13} />

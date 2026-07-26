@@ -1,9 +1,9 @@
-import { mkdtempSync, rmSync } from "node:fs";
+import { existsSync, mkdtempSync, rmSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import sharp from "sharp";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { saveCover } from "@/lib/images";
+import { removeStoredMedia, saveCover } from "@/lib/images";
 
 let tempDir = "";
 
@@ -31,6 +31,9 @@ describe("表紙処理", () => {
     const result = await saveCover(new File([png], "cover.png", { type: "image/png" }));
     expect(result?.coverPath).toMatch(/^media\/covers\/.+\.webp$/u);
     expect(result?.thumbnailPath).toMatch(/^media\/thumbs\/.+\.webp$/u);
+    expect(existsSync(path.join(tempDir, result!.coverPath))).toBe(true);
+    await removeStoredMedia([result!.coverPath, result!.thumbnailPath]);
+    expect(existsSync(path.join(tempDir, result!.coverPath))).toBe(false);
   });
 
   it("HEICを明示的に拒否する", async () => {
@@ -38,5 +41,11 @@ describe("表紙処理", () => {
       type: "image/heic",
     });
     await expect(saveCover(file)).rejects.toThrow("HEIC");
+  });
+
+  it("データ領域外のファイル削除を拒否する", async () => {
+    await expect(removeStoredMedia(["../outside.webp"])).rejects.toThrow(
+      "不正な画像パス",
+    );
   });
 });

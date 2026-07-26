@@ -23,6 +23,7 @@ export function formDataObject(formData: FormData) {
     storageLocationId: text("storageLocationId") || null,
     storageLocation: text("storageLocation"),
     readStatus: text("readStatus") || "unread",
+    ownershipStatus: text("ownershipStatus") || "owned",
     favorite: text("favorite") === "true" || text("favorite") === "on",
     notes: text("notes"),
     eventId: text("eventId") || null,

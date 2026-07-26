@@ -37,6 +37,15 @@ export function BookFilters({
           <option value="reading">読書中</option>
           <option value="read">読了</option>
         </select>
+        <select
+          name="ownershipStatus"
+          defaultValue={query.ownershipStatus ?? "owned"}
+          aria-label="所持状態"
+        >
+          <option value="owned">所持中</option>
+          <option value="disposed">処分済み</option>
+          <option value="all">すべての所持状態</option>
+        </select>
         <select name="eventId" defaultValue={query.eventId ?? ""} aria-label="購入イベント">
           <option value="">すべてのイベント</option>
           {events.map((event) => (

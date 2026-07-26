@@ -81,6 +81,7 @@ export function BookEditForm({
         </label>
         <label className="span-2">メモ<textarea name="notes" rows={3} defaultValue={book.notes} /></label>
         <input type="hidden" name="eventId" value="" />
+        <input type="hidden" name="ownershipStatus" value={book.ownershipStatus} />
         <input type="hidden" name="purchasedOn" value="" />
         <input type="hidden" name="acquisitionNotes" value="" />
         {message ? <p className="span-2 inline-message">{message}</p> : null}

@@ -18,6 +18,7 @@ export default async function BooksPage({ searchParams }: { searchParams: Search
     q: query.q,
     adultRating: query.adultRating,
     readStatus: query.readStatus,
+    ownershipStatus: query.ownershipStatus,
     favorite: query.favorite === "true",
     eventId: query.eventId,
     page: Number(query.page ?? 1),

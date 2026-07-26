@@ -51,7 +51,12 @@ export function OfflineCatalog() {
             <div className="book-card-body">
               <h3>{book.title}</h3>
               <p>{book.circles.join(" / ") || "サークル未登録"}</p>
-              <div className="book-meta-row"><span>{book.ownedCount}冊所持</span><span>{book.storageLocation}</span></div>
+              <div className="book-meta-row">
+                <span className={book.ownershipStatus === "disposed" ? "disposed-label" : ""}>
+                  {book.ownershipStatus === "disposed" ? "処分済み" : `${book.ownedCount}冊所持`}
+                </span>
+                <span>{book.storageLocation}</span>
+              </div>
             </div>
           </article>
         ))}
