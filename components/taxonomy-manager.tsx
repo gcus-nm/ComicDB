@@ -6,7 +6,7 @@ import { LoaderCircle, Plus, Shapes, Trash2 } from "lucide-react";
 import type { TaxonomyTag } from "@/lib/catalog";
 
 const TYPES = [
-  { value: "fandom", label: "原作" },
+  { value: "fandom", label: "作品" },
   { value: "character", label: "キャラクター" },
   { value: "pairing", label: "カップリング" },
 ] as const;
@@ -56,7 +56,7 @@ export function TaxonomyManager({ tags }: { tags: TaxonomyTag[] }) {
       body: JSON.stringify({ id: tagId, parentId: nextParentId }),
     });
     const body = (await response.json()) as { error?: string };
-    setMessage(response.ok ? "原作へ紐づけました。" : (body.error ?? "更新に失敗しました。"));
+    setMessage(response.ok ? "作品へ紐づけました。" : (body.error ?? "更新に失敗しました。"));
     setPending(false);
     if (response.ok) router.refresh();
   }
@@ -102,7 +102,7 @@ export function TaxonomyManager({ tags }: { tags: TaxonomyTag[] }) {
       <div className="settings-card-icon"><Shapes size={22} /></div>
       <div className="settings-card-body">
         <h2>作品・キャラクター分類</h2>
-        <p>原作を親として、キャラクターとカップリングを作品ごとに管理します。</p>
+        <p>作品を親として、キャラクターとカップリングを作品ごとに管理します。</p>
         <form className="taxonomy-add-form" onSubmit={add}>
           <select
             value={type}
@@ -121,10 +121,10 @@ export function TaxonomyManager({ tags }: { tags: TaxonomyTag[] }) {
             <select
               value={parentId}
               onChange={(event) => setParentId(event.target.value)}
-              aria-label="所属する原作"
+              aria-label="所属する作品"
               required
             >
-              <option value="">所属する原作を選択</option>
+              <option value="">所属する作品を選択</option>
               {fandoms.map((fandom) => (
                 <option key={fandom.id} value={fandom.id}>{fandom.name}</option>
               ))}
@@ -133,7 +133,7 @@ export function TaxonomyManager({ tags }: { tags: TaxonomyTag[] }) {
           <input
             value={name}
             onChange={(event) => setName(event.target.value)}
-            placeholder={type === "fandom" ? "原作名" : "名称を入力"}
+            placeholder={type === "fandom" ? "作品名" : "名称を入力"}
             required
             maxLength={160}
           />
@@ -145,8 +145,8 @@ export function TaxonomyManager({ tags }: { tags: TaxonomyTag[] }) {
 
         {unassigned.length ? (
           <div className="taxonomy-unassigned">
-            <strong>原作未所属の既存データ</strong>
-            <p>以前に登録した項目です。所属する原作を選んで整理できます。</p>
+            <strong>作品未所属の既存データ</strong>
+            <p>以前に登録した項目です。所属する作品を選んで整理できます。</p>
             {unassigned.map((tag) => (
               <label key={tag.id}>
                 <span>{tag.type === "character" ? "キャラクター" : "カップリング"}：{tag.name}</span>
@@ -155,7 +155,7 @@ export function TaxonomyManager({ tags }: { tags: TaxonomyTag[] }) {
                   onChange={(event) => void assign(tag.id, event.target.value)}
                   disabled={pending}
                 >
-                  <option value="">原作を選択</option>
+                  <option value="">作品を選択</option>
                   {fandoms.map((fandom) => (
                     <option key={fandom.id} value={fandom.id}>{fandom.name}</option>
                   ))}
@@ -193,7 +193,7 @@ export function TaxonomyManager({ tags }: { tags: TaxonomyTag[] }) {
               </section>
             );
           })}
-          {!fandoms.length ? <p className="taxonomy-no-fandom">まず原作を登録してください。</p> : null}
+          {!fandoms.length ? <p className="taxonomy-no-fandom">まず作品を登録してください。</p> : null}
         </div>
         {message ? <p className="status-line" role="status">{message}</p> : null}
       </div>

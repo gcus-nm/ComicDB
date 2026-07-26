@@ -16,7 +16,7 @@ import {
   listTaxonomyTags,
   setBookOwnershipStatus,
 } from "@/lib/catalog";
-import { exportCsv, importCsv } from "@/lib/csv";
+import { exportCsv, importCsv, preflightCsv } from "@/lib/csv";
 
 let tempDir = "";
 
@@ -89,7 +89,7 @@ describe("蔵書管理", () => {
       title: "CSVテスト",
       circles: "表計算部",
       creators: "",
-      fandoms: "",
+      fandoms: "作品Z",
       characters: "",
       pairings: "",
       genres: "",
@@ -110,6 +110,11 @@ describe("蔵書管理", () => {
       acquisitionNotes: "",
     });
     const csv = exportCsv();
+    expect(csv).toContain("作品");
+    expect(csv).not.toContain("原作");
+    const legacyPreview = preflightCsv(csv.replace("作品", "原作"));
+    expect(legacyPreview[0]?.input.fandoms).toBe("作品Z");
+    expect(legacyPreview[0]?.errors).toEqual([]);
     closeDbForTests();
     rmSync(tempDir, { recursive: true, force: true });
     tempDir = mkdtempSync(path.join(os.tmpdir(), "comicdb-test-import-"));
