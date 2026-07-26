@@ -34,11 +34,11 @@ export default function ManagePage() {
           </div>
           <ChevronRight size={20} />
         </Link>
-        <Link href="/settings#csv-manager" className="manage-card">
+        <Link href="/settings#google-sheets" className="manage-card">
           <span><FileSpreadsheet size={22} /></span>
           <div>
-            <h2>CSV入出力</h2>
-            <p>一括登録、事前確認、全件エクスポート。</p>
+            <h2>データ入出力</h2>
+            <p>Googleスプレッドシート連携とCSVの入出力。</p>
           </div>
           <ChevronRight size={20} />
         </Link>

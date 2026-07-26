@@ -5,4 +5,5 @@ data
 backups
 coverage
 .env
+client_secret_*.json
 npm-debug.log*

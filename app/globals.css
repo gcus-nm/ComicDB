@@ -1808,6 +1808,56 @@ button:disabled {
   margin-top: 17px;
 }
 
+.google-sheet-status,
+.sync-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 13px;
+  margin-top: 13px;
+  color: var(--ink-soft);
+  font-size: 10px;
+}
+
+.google-sheet-link {
+  margin-top: 11px;
+}
+
+.google-sheet-link a {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: var(--accent);
+  font-weight: 700;
+}
+
+.google-tab-picker {
+  display: grid;
+  grid-template-columns: auto minmax(160px, 1fr) auto;
+  align-items: center;
+  gap: 9px;
+  margin-top: 15px;
+}
+
+.google-tab-picker select {
+  min-height: 42px;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  background: var(--surface);
+  color: var(--ink);
+  padding: 8px 10px;
+}
+
+.google-sync-preview {
+  margin-top: 15px;
+  border-top: 1px solid var(--line);
+  padding-top: 2px;
+}
+
+.google-sync-preview > .primary-button,
+.google-sync-preview > .danger-button {
+  margin-top: 3px;
+}
+
 .taxonomy-add-form {
   display: flex;
   flex-wrap: wrap;
@@ -2509,6 +2559,11 @@ button:disabled {
   .button-row > * {
     flex: 1;
   }
+
+  .google-tab-picker {
+    grid-template-columns: 1fr;
+  }
+
   .offline-grid .cover-frame {
     min-height: 190px;
   }

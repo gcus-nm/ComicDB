@@ -1,5 +1,6 @@
 import { BackupManager } from "@/components/backup-manager";
 import { CsvManager } from "@/components/csv-manager";
+import { GoogleSheetsManager } from "@/components/google-sheets-manager";
 import { LogoutButton } from "@/components/logout-button";
 import { OfflineManager } from "@/components/offline-manager";
 import { PrivacySettings } from "@/components/privacy-settings";
@@ -17,6 +18,7 @@ export default function SettingsPage() {
         </div>
       </header>
       <OfflineManager />
+      <GoogleSheetsManager />
       <CsvManager />
       <BackupManager />
       <PrivacySettings />
