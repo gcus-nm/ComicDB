@@ -52,3 +52,23 @@ export const acquisitionInputSchema = z.object({
   quantity: z.coerce.number().int().min(1).max(99).default(1),
   notes: z.string().trim().max(1000).optional().default(""),
 });
+
+export const wishlistItemInputSchema = z.object({
+  title: z.string().trim().min(1, "タイトルは必須です。").max(300),
+  circle: z.string().trim().max(200).optional().default(""),
+  booth: z.string().trim().max(100).optional().default(""),
+  quantity: z.coerce.number().int().min(1).max(99).default(1),
+  priceYen: z.coerce.number().int().min(0).max(10_000_000).nullable().optional(),
+  notes: z.string().trim().max(1000).optional().default(""),
+  purchased: z.boolean().optional().default(false),
+});
+
+export const wishlistItemUpdateSchema = z.object({
+  title: z.string().trim().min(1, "タイトルは必須です。").max(300).optional(),
+  circle: z.string().trim().max(200).optional(),
+  booth: z.string().trim().max(100).optional(),
+  quantity: z.coerce.number().int().min(1).max(99).optional(),
+  priceYen: z.coerce.number().int().min(0).max(10_000_000).nullable().optional(),
+  notes: z.string().trim().max(1000).optional(),
+  purchased: z.boolean().optional(),
+});

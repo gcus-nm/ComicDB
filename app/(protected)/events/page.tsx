@@ -38,6 +38,7 @@ export default function EventsPage() {
                 <div>
                   <span>{event.bookCount}タイトル</span>
                   <span>{event.totalQuantity}冊</span>
+                  <span>ほしいもの {event.wishlistRemainingCount}件</span>
                 </div>
               </div>
               <ChevronRight size={21} />
