@@ -20,6 +20,15 @@ const nextConfig: NextConfig = {
           },
         ],
       },
+      {
+        source: "/settings",
+        headers: [
+          {
+            key: "Referrer-Policy",
+            value: "strict-origin-when-cross-origin",
+          },
+        ],
+      },
     ];
   },
 };
