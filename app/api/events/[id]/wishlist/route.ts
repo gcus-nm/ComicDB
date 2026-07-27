@@ -4,6 +4,7 @@ import {
   getEvent,
   listWishlistItems,
 } from "@/lib/catalog";
+import { isEventDayWithinEvent } from "@/lib/event-dates";
 import { assertMutationAllowed, errorResponse, HttpError } from "@/lib/security";
 import { wishlistItemInputSchema } from "@/lib/validators";
 
@@ -30,6 +31,17 @@ export async function POST(
     assertMutationAllowed(request);
     const { id } = await context.params;
     const input = wishlistItemInputSchema.parse(await request.json());
+    const event = getEvent(id);
+    if (!event) throw new HttpError(404, "イベントが見つかりません。");
+    if (
+      !isEventDayWithinEvent(
+        event.starts_on,
+        event.ends_on,
+        input.eventDay,
+      )
+    ) {
+      throw new HttpError(400, "対象日はイベント開催期間内を指定してください。");
+    }
     const item = createWishlistItem(id, input);
     if (!item) throw new HttpError(404, "イベントが見つかりません。");
     return Response.json(item, { status: 201 });

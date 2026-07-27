@@ -8,6 +8,7 @@ import {
 } from "lucide-react";
 import { WishlistManager } from "@/components/wishlist-manager";
 import { getEvent, listWishlistItems } from "@/lib/catalog";
+import { formatEventDateRange } from "@/lib/event-dates";
 
 export const metadata = { title: "イベントのほしいものリスト" };
 
@@ -35,7 +36,7 @@ export default async function EventWishlistPage({
           <span className="eyebrow">EVENT WISHLIST</span>
           <h1>{event.name}</h1>
           <p>
-            {event.starts_on.replaceAll("-", ".")}
+            {formatEventDateRange(event.starts_on, event.ends_on)}
             {event.venue ? (
               <>
                 <span>·</span>
@@ -53,7 +54,12 @@ export default async function EventWishlistPage({
           購入品を登録
         </Link>
       </section>
-      <WishlistManager eventId={event.id} initialItems={items} />
+      <WishlistManager
+        eventId={event.id}
+        startsOn={event.starts_on}
+        endsOn={event.ends_on}
+        initialItems={items}
+      />
     </div>
   );
 }

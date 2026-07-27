@@ -22,7 +22,11 @@ import {
   updateWishlistItem,
 } from "@/lib/catalog";
 import { exportCsv, importCsv, preflightCsv } from "@/lib/csv";
-import { wishlistItemUpdateSchema } from "@/lib/validators";
+import {
+  eventInputSchema,
+  wishlistItemInputSchema,
+  wishlistItemUpdateSchema,
+} from "@/lib/validators";
 
 let tempDir = "";
 
@@ -148,14 +152,16 @@ describe("蔵書管理", () => {
   });
 
   it("イベントごとのほしいものを追加・更新・削除できる", () => {
-    const event = createEvent({
+    const event = createEvent(eventInputSchema.parse({
       name: "コミックマーケット",
       startsOn: "2026-08-15",
-      endsOn: "",
+      endsOn: "2026-08-17",
       venue: "東京ビッグサイト",
       notes: "",
-    })!;
+    }))!;
+
     const item = createWishlistItem(event.id, {
+      eventDay: 2,
       title: "新刊セット",
       circle: "星空書房",
       booth: "東A-01a",
@@ -164,9 +170,9 @@ describe("蔵書管理", () => {
       notes: "会場限定",
       purchased: false,
     })!;
-    expect(wishlistItemUpdateSchema.parse({ purchased: true })).toEqual({
-      purchased: true,
-    });
+    expect(
+      wishlistItemUpdateSchema.parse({ eventDay: 3, purchased: true }),
+    ).toEqual({ eventDay: 3, purchased: true });
 
     expect(listWishlistItems(event.id)).toEqual([item]);
     expect(listEvents()[0]).toMatchObject({
@@ -175,10 +181,12 @@ describe("蔵書管理", () => {
     });
 
     const updated = updateWishlistItem(item.id, {
+      eventDay: 3,
       purchased: true,
       quantity: 1,
     });
     expect(updated).toMatchObject({
+      eventDay: 3,
       purchased: true,
       quantity: 1,
       circle: "星空書房",
@@ -186,6 +194,7 @@ describe("蔵書管理", () => {
       priceYen: 1000,
       notes: "会場限定",
     });
+    expect(updateWishlistItem(item.id, { eventDay: 4 })).toBeNull();
     expect(listEvents()[0]).toMatchObject({
       wishlistCount: 1,
       wishlistRemainingCount: 0,
@@ -194,5 +203,21 @@ describe("蔵書管理", () => {
     expect(deleteWishlistItem(item.id)).toBe(true);
     expect(deleteWishlistItem(item.id)).toBe(false);
     expect(listWishlistItems(event.id)).toEqual([]);
+  });
+
+  it("対象日未指定のほしいものは1日目として扱う", () => {
+    const event = createEvent({
+      name: "単日イベント",
+      startsOn: "2026-09-01",
+      endsOn: "",
+      venue: "",
+      notes: "",
+    })!;
+    createWishlistItem(
+      event.id,
+      wishlistItemInputSchema.parse({ title: "初日の新刊" }),
+    );
+
+    expect(listWishlistItems(event.id)[0]).toMatchObject({ eventDay: 1 });
   });
 });

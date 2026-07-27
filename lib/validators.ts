@@ -1,4 +1,8 @@
 import { z } from "zod";
+import {
+  eventDayForDate,
+  isIsoDate,
+} from "./event-dates";
 
 const optionalDate = z
   .string()
@@ -37,13 +41,42 @@ export const ownershipStatusInputSchema = z.object({
   ownershipStatus: z.enum(["owned", "disposed"]),
 });
 
-export const eventInputSchema = z.object({
-  name: z.string().trim().min(1, "イベント名は必須です。").max(200),
-  startsOn: optionalDate.refine(Boolean, "開催日は必須です。"),
-  endsOn: optionalDate.optional().default(""),
-  venue: z.string().trim().max(200).optional().default(""),
-  notes: z.string().trim().max(2000).optional().default(""),
-});
+export const eventInputSchema = z
+  .object({
+    name: z.string().trim().min(1, "イベント名は必須です。").max(200),
+    startsOn: optionalDate.refine(Boolean, "開催日は必須です。"),
+    endsOn: optionalDate.optional().default(""),
+    venue: z.string().trim().max(200).optional().default(""),
+    notes: z.string().trim().max(2000).optional().default(""),
+  })
+  .superRefine((input, context) => {
+    if (!isIsoDate(input.startsOn)) {
+      context.addIssue({
+        code: "custom",
+        path: ["startsOn"],
+        message: "開催日が存在しない日付です。",
+      });
+      return;
+    }
+    if (input.endsOn && !isIsoDate(input.endsOn)) {
+      context.addIssue({
+        code: "custom",
+        path: ["endsOn"],
+        message: "終了日が存在しない日付です。",
+      });
+      return;
+    }
+    if (
+      input.endsOn &&
+      (eventDayForDate(input.startsOn, input.endsOn) ?? 0) < 1
+    ) {
+      context.addIssue({
+        code: "custom",
+        path: ["endsOn"],
+        message: "終了日は開催日以降を指定してください。",
+      });
+    }
+  });
 
 export const acquisitionInputSchema = z.object({
   eventId: z.string().trim().optional().nullable(),
@@ -54,6 +87,7 @@ export const acquisitionInputSchema = z.object({
 });
 
 export const wishlistItemInputSchema = z.object({
+  eventDay: z.coerce.number().int().min(1).default(1),
   title: z.string().trim().min(1, "タイトルは必須です。").max(300),
   circle: z.string().trim().max(200).optional().default(""),
   booth: z.string().trim().max(100).optional().default(""),
@@ -64,6 +98,7 @@ export const wishlistItemInputSchema = z.object({
 });
 
 export const wishlistItemUpdateSchema = z.object({
+  eventDay: z.coerce.number().int().min(1).optional(),
   title: z.string().trim().min(1, "タイトルは必須です。").max(300).optional(),
   circle: z.string().trim().max(200).optional(),
   booth: z.string().trim().max(100).optional(),

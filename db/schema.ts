@@ -199,6 +199,7 @@ export const wishlistItems = sqliteTable(
     eventId: text("event_id")
       .notNull()
       .references(() => events.id, { onDelete: "cascade" }),
+    eventDay: integer("event_day").notNull().default(1),
     title: text("title").notNull(),
     circle: text("circle").notNull().default(""),
     booth: text("booth").notNull().default(""),
