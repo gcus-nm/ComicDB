@@ -16,6 +16,7 @@ import type {
   TagType,
   WishlistItem,
 } from "./types";
+import { isEventDayWithinEvent } from "./event-dates";
 
 type BookInput = z.infer<typeof bookInputSchema>;
 type BookMedia = { coverPath: string; thumbnailPath: string };
@@ -801,6 +802,7 @@ export function listEvents(limit = 100): EventSummary[] {
 type WishlistItemRow = {
   id: string;
   event_id: string;
+  event_day: number;
   title: string;
   circle: string;
   booth: string;
@@ -816,6 +818,7 @@ function toWishlistItem(row: WishlistItemRow): WishlistItem {
   return {
     id: row.id,
     eventId: row.event_id,
+    eventDay: row.event_day,
     title: row.title,
     circle: row.circle,
     booth: row.booth,
@@ -828,7 +831,7 @@ function toWishlistItem(row: WishlistItemRow): WishlistItem {
   };
 }
 
-function getWishlistItem(id: string) {
+export function getWishlistItem(id: string) {
   const row = getDb().sqlite
     .prepare("SELECT * FROM wishlist_items WHERE id = ?")
     .get(id) as WishlistItemRow | undefined;
@@ -840,7 +843,7 @@ export function listWishlistItems(eventId: string): WishlistItem[] {
     .prepare(
       `SELECT * FROM wishlist_items
        WHERE event_id = ?
-       ORDER BY purchased ASC, created_at ASC`,
+       ORDER BY purchased ASC, event_day ASC, created_at ASC`,
     )
     .all(eventId) as WishlistItemRow[];
   return rows.map(toWishlistItem);
@@ -852,19 +855,27 @@ export function createWishlistItem(
 ) {
   const db = getDb().sqlite;
   const event = db
-    .prepare("SELECT id FROM events WHERE id = ?")
-    .get(eventId) as { id: string } | undefined;
-  if (!event) return null;
+    .prepare("SELECT id, starts_on, ends_on FROM events WHERE id = ?")
+    .get(eventId) as
+    | { id: string; starts_on: string; ends_on: string | null }
+    | undefined;
+  if (
+    !event ||
+    !isEventDayWithinEvent(event.starts_on, event.ends_on, input.eventDay)
+  ) {
+    return null;
+  }
   const id = randomUUID();
   const now = new Date().toISOString();
   db.prepare(
     `INSERT INTO wishlist_items (
-      id, event_id, title, circle, booth, quantity, price_yen, notes,
-      purchased, created_at, updated_at
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      id, event_id, event_day, title, circle, booth, quantity, price_yen,
+      notes, purchased, created_at, updated_at
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
   ).run(
     id,
     eventId,
+    input.eventDay,
     input.title,
     input.circle,
     input.booth,
@@ -884,14 +895,23 @@ export function updateWishlistItem(
 ) {
   const current = getWishlistItem(id);
   if (!current) return null;
+  const event = getEvent(current.eventId);
+  const eventDay = input.eventDay ?? current.eventDay;
+  if (
+    !event ||
+    !isEventDayWithinEvent(event.starts_on, event.ends_on, eventDay)
+  ) {
+    return null;
+  }
   getDb()
     .sqlite.prepare(
       `UPDATE wishlist_items SET
-        title = ?, circle = ?, booth = ?, quantity = ?, price_yen = ?,
-        notes = ?, purchased = ?, updated_at = ?
+        event_day = ?, title = ?, circle = ?, booth = ?, quantity = ?,
+        price_yen = ?, notes = ?, purchased = ?, updated_at = ?
        WHERE id = ?`,
     )
     .run(
+      eventDay,
       input.title ?? current.title,
       input.circle ?? current.circle,
       input.booth ?? current.booth,

@@ -6,6 +6,7 @@ import {
   MapPin,
 } from "lucide-react";
 import { listEvents } from "@/lib/catalog";
+import { formatEventDateRange } from "@/lib/event-dates";
 
 export const metadata = { title: "ほしいものリスト" };
 
@@ -38,7 +39,9 @@ export default function WishlistPage() {
                 <ListChecks size={22} />
               </span>
               <div className="wishlist-event-body">
-                <time>{event.startsOn.replaceAll("-", ".")}</time>
+                <time>
+                  {formatEventDateRange(event.startsOn, event.endsOn)}
+                </time>
                 <h2>{event.name}</h2>
                 <p>
                   <MapPin size={14} />

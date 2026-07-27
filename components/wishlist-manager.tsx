@@ -12,9 +12,14 @@ import {
   Trash2,
   X,
 } from "lucide-react";
+import {
+  eventDurationDays,
+  formatWishlistDate,
+} from "@/lib/event-dates";
 import type { WishlistItem } from "@/lib/types";
 
 type WishlistDraft = {
+  eventDay: number;
   title: string;
   circle: string;
   booth: string;
@@ -27,12 +32,14 @@ function sortItems(items: WishlistItem[]) {
   return [...items].sort(
     (left, right) =>
       Number(left.purchased) - Number(right.purchased) ||
+      left.eventDay - right.eventDay ||
       left.createdAt.localeCompare(right.createdAt),
   );
 }
 
 function draftFromItem(item: WishlistItem): WishlistDraft {
   return {
+    eventDay: item.eventDay,
     title: item.title,
     circle: item.circle,
     booth: item.booth,
@@ -44,9 +51,13 @@ function draftFromItem(item: WishlistItem): WishlistDraft {
 
 export function WishlistManager({
   eventId,
+  startsOn,
+  endsOn,
   initialItems,
 }: {
   eventId: string;
+  startsOn: string;
+  endsOn: string | null;
   initialItems: WishlistItem[];
 }) {
   const formRef = useRef<HTMLFormElement>(null);
@@ -55,6 +66,10 @@ export function WishlistManager({
   const [draft, setDraft] = useState<WishlistDraft | null>(null);
   const [pending, setPending] = useState<string | null>(null);
   const [message, setMessage] = useState("");
+  const eventDays = Array.from(
+    { length: eventDurationDays(startsOn, endsOn) ?? 1 },
+    (_, index) => index + 1,
+  );
 
   const purchasedCount = items.filter((item) => item.purchased).length;
   const remainingCount = items.length - purchasedCount;
@@ -80,6 +95,7 @@ export function WishlistManager({
           "X-ComicDB-Request": "1",
         },
         body: JSON.stringify({
+          eventDay: Number(data.get("eventDay") ?? 1),
           title: data.get("title"),
           circle: data.get("circle"),
           booth: data.get("booth"),
@@ -163,6 +179,7 @@ export function WishlistManager({
     const updated = await patchItem(
       item.id,
       {
+        eventDay: draft.eventDay,
         title: draft.title,
         circle: draft.circle,
         booth: draft.booth,
@@ -243,6 +260,16 @@ export function WishlistManager({
               maxLength={300}
               placeholder="例：新刊タイトル"
             />
+          </label>
+          <label>
+            対象日 <b>必須</b>
+            <select name="eventDay" defaultValue={1} required>
+              {eventDays.map((eventDay) => (
+                <option key={eventDay} value={eventDay}>
+                  {formatWishlistDate(startsOn, eventDay)}
+                </option>
+              ))}
+            </select>
           </label>
           <label>
             サークル
@@ -359,6 +386,24 @@ export function WishlistManager({
                           />
                         </label>
                         <label>
+                          対象日
+                          <select
+                            value={draft.eventDay}
+                            onChange={(event) =>
+                              setDraft({
+                                ...draft,
+                                eventDay: Number(event.target.value),
+                              })
+                            }
+                          >
+                            {eventDays.map((eventDay) => (
+                              <option key={eventDay} value={eventDay}>
+                                {formatWishlistDate(startsOn, eventDay)}
+                              </option>
+                            ))}
+                          </select>
+                        </label>
+                        <label>
                           サークル
                           <input
                             value={draft.circle}
@@ -453,6 +498,9 @@ export function WishlistManager({
                         {item.purchased ? <span>購入済み</span> : null}
                       </div>
                       <div className="wishlist-item-meta">
+                        <span className="wishlist-item-date">
+                          {formatWishlistDate(startsOn, item.eventDay)}
+                        </span>
                         {item.circle ? <span>{item.circle}</span> : null}
                         {item.booth ? <span>配置 {item.booth}</span> : null}
                         <span>{item.quantity}点</span>
@@ -498,7 +546,7 @@ export function WishlistManager({
           <div className="empty-state wishlist-empty">
             <Plus size={28} />
             <h3>ほしいものを追加しましょう</h3>
-            <p>タイトル、サークル、配置、予算をイベントごとにまとめられます。</p>
+            <p>対象日、タイトル、サークル、配置、予算をイベントごとにまとめられます。</p>
           </div>
         )}
       </section>
