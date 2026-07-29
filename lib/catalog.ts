@@ -16,7 +16,10 @@ import type {
   TagType,
   WishlistItem,
 } from "./types";
-import { isEventDayWithinEvent } from "./event-dates";
+import {
+  eventDateForDay,
+  isEventDayWithinEvent,
+} from "./event-dates";
 
 type BookInput = z.infer<typeof bookInputSchema>;
 type BookMedia = { coverPath: string; thumbnailPath: string };
@@ -724,6 +727,26 @@ export function createEvent(input: EventInput) {
   return getEvent(id);
 }
 
+export function updateEvent(id: string, input: EventInput) {
+  const result = getDb()
+    .sqlite.prepare(
+      `UPDATE events SET
+        name = ?, starts_on = ?, ends_on = ?, venue = ?, notes = ?,
+        updated_at = ?
+       WHERE id = ?`,
+    )
+    .run(
+      input.name,
+      input.startsOn,
+      input.endsOn || null,
+      input.venue,
+      input.notes,
+      new Date().toISOString(),
+      id,
+    );
+  return result.changes > 0 ? getEvent(id)! : null;
+}
+
 export function getEvent(id: string) {
   return getDb().sqlite
     .prepare(
@@ -754,6 +777,24 @@ export function getEvent(id: string) {
         wishlist_remaining_count: number;
       }
     | undefined;
+}
+
+export function hasWishlistItemsOutsideEventRange(
+  eventId: string,
+  startsOn: string,
+  endsOn: string | null | undefined,
+) {
+  const row = getDb()
+    .sqlite.prepare(
+      `SELECT MAX(event_day) AS max_event_day
+       FROM wishlist_items
+       WHERE event_id = ?`,
+    )
+    .get(eventId) as { max_event_day: number | null };
+  return (
+    row.max_event_day !== null &&
+    !isEventDayWithinEvent(startsOn, endsOn, row.max_event_day)
+  );
 }
 
 export function listEvents(limit = 100): EventSummary[] {
@@ -802,6 +843,7 @@ export function listEvents(limit = 100): EventSummary[] {
 type WishlistItemRow = {
   id: string;
   event_id: string;
+  book_id: string | null;
   event_day: number;
   title: string;
   circle: string;
@@ -818,6 +860,7 @@ function toWishlistItem(row: WishlistItemRow): WishlistItem {
   return {
     id: row.id,
     eventId: row.event_id,
+    bookId: row.book_id,
     eventDay: row.event_day,
     title: row.title,
     circle: row.circle,
@@ -867,26 +910,31 @@ export function createWishlistItem(
   }
   const id = randomUUID();
   const now = new Date().toISOString();
-  db.prepare(
-    `INSERT INTO wishlist_items (
-      id, event_id, event_day, title, circle, booth, quantity, price_yen,
-      notes, purchased, created_at, updated_at
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-  ).run(
-    id,
-    eventId,
-    input.eventDay,
-    input.title,
-    input.circle,
-    input.booth,
-    input.quantity,
-    input.priceYen ?? null,
-    input.notes,
-    input.purchased ? 1 : 0,
-    now,
-    now,
-  );
-  return getWishlistItem(id)!;
+  const transaction = db.transaction(() => {
+    db.prepare(
+      `INSERT INTO wishlist_items (
+        id, event_id, event_day, title, circle, booth, quantity, price_yen,
+        notes, purchased, created_at, updated_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    ).run(
+      id,
+      eventId,
+      input.eventDay,
+      input.title,
+      input.circle,
+      input.booth,
+      input.quantity,
+      input.priceYen ?? null,
+      input.notes,
+      0,
+      now,
+      now,
+    );
+    return input.purchased
+      ? updateWishlistItem(id, { purchased: true })!
+      : getWishlistItem(id)!;
+  });
+  return transaction();
 }
 
 export function updateWishlistItem(
@@ -903,32 +951,74 @@ export function updateWishlistItem(
   ) {
     return null;
   }
-  getDb()
-    .sqlite.prepare(
+
+  const title = input.title ?? current.title;
+  const circle = input.circle ?? current.circle;
+  const booth = input.booth ?? current.booth;
+  const quantity = input.quantity ?? current.quantity;
+  const priceYen =
+    input.priceYen === undefined ? current.priceYen : input.priceYen;
+  const notes = input.notes ?? current.notes;
+  const purchased = input.purchased ?? current.purchased;
+  const db = getDb().sqlite;
+
+  const transaction = db.transaction(() => {
+    let bookId = current.bookId;
+    if (purchased && !bookId) {
+      const acquisitionNotes = [
+        booth ? `配置: ${booth}` : "",
+        notes,
+      ].filter(Boolean).join("\n");
+      const book = createBook({
+        title,
+        circles: circle,
+        creators: "",
+        fandoms: "",
+        characters: "",
+        pairings: "",
+        genres: "",
+        tags: "",
+        adultRating: "general",
+        publishedOn: "",
+        edition: "",
+        storageLocationId: null,
+        storageLocation: "",
+        readStatus: "unread",
+        ownershipStatus: "owned",
+        favorite: false,
+        notes: "",
+        eventId: current.eventId,
+        purchasedOn:
+          eventDateForDay(event.starts_on, eventDay) ?? event.starts_on,
+        priceYen,
+        quantity,
+        acquisitionNotes,
+      });
+      bookId = book.id;
+    }
+
+    db.prepare(
       `UPDATE wishlist_items SET
-        event_day = ?, title = ?, circle = ?, booth = ?, quantity = ?,
-        price_yen = ?, notes = ?, purchased = ?, updated_at = ?
+        book_id = ?, event_day = ?, title = ?, circle = ?, booth = ?,
+        quantity = ?, price_yen = ?, notes = ?, purchased = ?, updated_at = ?
        WHERE id = ?`,
     )
     .run(
+      bookId,
       eventDay,
-      input.title ?? current.title,
-      input.circle ?? current.circle,
-      input.booth ?? current.booth,
-      input.quantity ?? current.quantity,
-      input.priceYen === undefined ? current.priceYen : input.priceYen,
-      input.notes ?? current.notes,
-      input.purchased === undefined
-        ? current.purchased
-          ? 1
-          : 0
-        : input.purchased
-          ? 1
-          : 0,
+      title,
+      circle,
+      booth,
+      quantity,
+      priceYen,
+      notes,
+      purchased ? 1 : 0,
       new Date().toISOString(),
       id,
     );
-  return getWishlistItem(id)!;
+    return getWishlistItem(id)!;
+  });
+  return transaction();
 }
 
 export function deleteWishlistItem(id: string) {

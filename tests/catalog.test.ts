@@ -14,11 +14,14 @@ import {
   deleteWishlistItem,
   findDuplicateCandidates,
   getBook,
+  getEvent,
+  hasWishlistItemsOutsideEventRange,
   listBooks,
   listEvents,
   listTaxonomyTags,
   listWishlistItems,
   setBookOwnershipStatus,
+  updateEvent,
   updateWishlistItem,
 } from "@/lib/catalog";
 import { exportCsv, importCsv, preflightCsv } from "@/lib/csv";
@@ -194,6 +197,35 @@ describe("蔵書管理", () => {
       priceYen: 1000,
       notes: "会場限定",
     });
+    expect(updated?.bookId).toEqual(expect.any(String));
+    const registeredBook = getBook(updated!.bookId!);
+    expect(registeredBook).toMatchObject({
+      title: "新刊セット",
+      circles: ["星空書房"],
+      ownedCount: 1,
+      acquisitions: [
+        {
+          eventId: event.id,
+          purchasedOn: "2026-08-17",
+          priceYen: 1000,
+          quantity: 1,
+          notes: "配置: 東A-01a\n会場限定",
+        },
+      ],
+    });
+
+    const unpurchased = updateWishlistItem(item.id, { purchased: false });
+    expect(unpurchased).toMatchObject({
+      purchased: false,
+      bookId: updated!.bookId,
+    });
+    const repurchased = updateWishlistItem(item.id, { purchased: true });
+    expect(repurchased).toMatchObject({
+      purchased: true,
+      bookId: updated!.bookId,
+    });
+    expect(listBooks({ eventId: event.id }).books).toHaveLength(1);
+
     expect(updateWishlistItem(item.id, { eventDay: 4 })).toBeNull();
     expect(listEvents()[0]).toMatchObject({
       wishlistCount: 1,
@@ -203,6 +235,67 @@ describe("蔵書管理", () => {
     expect(deleteWishlistItem(item.id)).toBe(true);
     expect(deleteWishlistItem(item.id)).toBe(false);
     expect(listWishlistItems(event.id)).toEqual([]);
+    expect(getBook(updated!.bookId!)).not.toBeNull();
+  });
+
+  it("既存イベントを更新でき、ほしいものが期間外になる変更を判定できる", () => {
+    const event = createEvent({
+      name: "変更前イベント",
+      startsOn: "2026-08-15",
+      endsOn: "2026-08-17",
+      venue: "変更前会場",
+      notes: "変更前メモ",
+    })!;
+    createWishlistItem(event.id, {
+      eventDay: 3,
+      title: "3日目の新刊",
+      circle: "",
+      booth: "",
+      quantity: 1,
+      priceYen: null,
+      notes: "",
+      purchased: false,
+    });
+
+    expect(
+      hasWishlistItemsOutsideEventRange(
+        event.id,
+        "2026-08-15",
+        "2026-08-16",
+      ),
+    ).toBe(true);
+    expect(
+      hasWishlistItemsOutsideEventRange(
+        event.id,
+        "2026-08-15",
+        "2026-08-17",
+      ),
+    ).toBe(false);
+
+    const updated = updateEvent(event.id, {
+      name: "変更後イベント",
+      startsOn: "2026-08-16",
+      endsOn: "2026-08-18",
+      venue: "変更後会場",
+      notes: "変更後メモ",
+    });
+    expect(updated).toMatchObject({
+      id: event.id,
+      name: "変更後イベント",
+      starts_on: "2026-08-16",
+      ends_on: "2026-08-18",
+      venue: "変更後会場",
+      notes: "変更後メモ",
+    });
+    expect(getEvent(event.id)).toMatchObject(updated!);
+    expect(listEvents()[0]).toMatchObject({
+      id: event.id,
+      name: "変更後イベント",
+      startsOn: "2026-08-16",
+      endsOn: "2026-08-18",
+      venue: "変更後会場",
+      notes: "変更後メモ",
+    });
   });
 
   it("対象日未指定のほしいものは1日目として扱う", () => {
@@ -219,5 +312,35 @@ describe("蔵書管理", () => {
     );
 
     expect(listWishlistItems(event.id)[0]).toMatchObject({ eventDay: 1 });
+  });
+
+  it("購入済みのほしいものを直接追加した場合も蔵書を1件だけ作成する", () => {
+    const event = createEvent({
+      name: "購入済み登録イベント",
+      startsOn: "2026-09-02",
+      endsOn: "",
+      venue: "",
+      notes: "",
+    })!;
+    const item = createWishlistItem(event.id, {
+      eventDay: 1,
+      title: "購入済み新刊",
+      circle: "新刊サークル",
+      booth: "",
+      quantity: 1,
+      priceYen: 500,
+      notes: "",
+      purchased: true,
+    })!;
+
+    expect(item).toMatchObject({
+      purchased: true,
+      bookId: expect.any(String),
+    });
+    expect(listBooks({ eventId: event.id }).books).toHaveLength(1);
+    expect(updateWishlistItem(item.id, { purchased: true })?.bookId).toBe(
+      item.bookId,
+    );
+    expect(listBooks({ eventId: event.id }).books).toHaveLength(1);
   });
 });

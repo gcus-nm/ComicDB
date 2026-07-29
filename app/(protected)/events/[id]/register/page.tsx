@@ -5,6 +5,7 @@ import {
   ChevronLeft,
   ListChecks,
   MapPin,
+  Pencil,
 } from "lucide-react";
 import { BookCard } from "@/components/book-card";
 import { BookForm } from "@/components/book-form";
@@ -36,13 +37,22 @@ export default async function EventRegisterPage({
             {event.venue ? <><span>·</span><MapPin size={14} />{event.venue}</> : null}
           </p>
         </div>
-        <Link
-          href={`/events/${event.id}/wishlist`}
-          className="secondary-button wishlist-register-link"
-        >
-          <ListChecks size={17} />
-          ほしいものリスト
-        </Link>
+        <div className="event-header-actions">
+          <Link
+            href={`/events/${event.id}/edit`}
+            className="secondary-button"
+          >
+            <Pencil size={17} />
+            イベント編集
+          </Link>
+          <Link
+            href={`/events/${event.id}/wishlist`}
+            className="secondary-button wishlist-register-link"
+          >
+            <ListChecks size={17} />
+            ほしいものリスト
+          </Link>
+        </div>
       </section>
       <BookForm
         event={{ id: event.id, name: event.name, startsOn: event.starts_on }}

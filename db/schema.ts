@@ -199,6 +199,9 @@ export const wishlistItems = sqliteTable(
     eventId: text("event_id")
       .notNull()
       .references(() => events.id, { onDelete: "cascade" }),
+    bookId: text("book_id").references(() => books.id, {
+      onDelete: "set null",
+    }),
     eventDay: integer("event_day").notNull().default(1),
     title: text("title").notNull(),
     circle: text("circle").notNull().default(""),
@@ -214,6 +217,7 @@ export const wishlistItems = sqliteTable(
   },
   (table) => [
     index("wishlist_items_event_idx").on(table.eventId),
+    index("wishlist_items_book_idx").on(table.bookId),
     index("wishlist_items_event_purchased_idx").on(
       table.eventId,
       table.purchased,
