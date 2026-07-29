@@ -36,11 +36,15 @@ export function EventCreateForm() {
     <form className="form-section standalone-form" onSubmit={submit}>
       <div className="form-grid">
         <label className="span-2">
-          イベント名 <b>必須</b>
+          <span className="field-label">
+            イベント名 <b>必須</b>
+          </span>
           <input name="name" required maxLength={200} autoFocus placeholder="例：コミックマーケット108" />
         </label>
         <label>
-          開催日 <b>必須</b>
+          <span className="field-label">
+            開催日 <b>必須</b>
+          </span>
           <input name="startsOn" type="date" required />
         </label>
         <label>

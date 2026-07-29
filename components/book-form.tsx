@@ -196,7 +196,9 @@ export function BookForm({
         </div>
         <div className="form-grid">
           <label className="span-2">
-            タイトル <b>必須</b>
+            <span className="field-label">
+              タイトル <b>必須</b>
+            </span>
             <input
               name="title"
               required

@@ -118,6 +118,7 @@ CREATE INDEX IF NOT EXISTS events_starts_on_idx ON events(starts_on);
 CREATE TABLE IF NOT EXISTS wishlist_items (
   id TEXT PRIMARY KEY,
   event_id TEXT NOT NULL REFERENCES events(id) ON DELETE CASCADE,
+  book_id TEXT REFERENCES books(id) ON DELETE SET NULL,
   event_day INTEGER NOT NULL DEFAULT 1 CHECK(event_day >= 1),
   title TEXT NOT NULL,
   circle TEXT NOT NULL DEFAULT '',
@@ -131,6 +132,8 @@ CREATE TABLE IF NOT EXISTS wishlist_items (
 );
 CREATE INDEX IF NOT EXISTS wishlist_items_event_idx
   ON wishlist_items(event_id);
+CREATE INDEX IF NOT EXISTS wishlist_items_book_idx
+  ON wishlist_items(book_id);
 CREATE INDEX IF NOT EXISTS wishlist_items_event_purchased_idx
   ON wishlist_items(event_id, purchased);
 

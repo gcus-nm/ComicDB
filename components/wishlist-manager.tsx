@@ -1,7 +1,10 @@
 "use client";
 
+import Link from "next/link";
 import { useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import {
+  BookOpen,
   Check,
   CheckCircle2,
   Circle,
@@ -60,6 +63,7 @@ export function WishlistManager({
   endsOn: string | null;
   initialItems: WishlistItem[];
 }) {
+  const router = useRouter();
   const formRef = useRef<HTMLFormElement>(null);
   const [items, setItems] = useState(() => sortItems(initialItems));
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -110,6 +114,7 @@ export function WishlistManager({
         return;
       }
       setItems((current) => sortItems([...current, body]));
+      router.refresh();
       formRef.current?.reset();
       setMessage("ほしいものを追加しました。");
     } catch {
@@ -139,10 +144,11 @@ export function WishlistManager({
       setItems((current) =>
         sortItems(current.map((item) => (item.id === body.id ? body : item))),
       );
-      return true;
+      router.refresh();
+      return body;
     } catch {
       setMessage("通信に失敗しました。時間をおいて再度お試しください。");
-      return false;
+      return null;
     } finally {
       setPending(null);
     }
@@ -157,8 +163,12 @@ export function WishlistManager({
     if (updated) {
       setMessage(
         item.purchased
-          ? "未購入へ戻しました。"
-          : "購入済みとしてチェックしました。",
+          ? item.bookId
+            ? "未購入へ戻しました。登録済みの蔵書は残ります。"
+            : "未購入へ戻しました。"
+          : item.bookId
+            ? "購入済みに戻しました。登録済みの蔵書はそのままです。"
+            : "購入済みにし、蔵書へ登録しました。",
       );
     }
   }
@@ -210,8 +220,13 @@ export function WishlistManager({
         return;
       }
       setItems((current) => current.filter((candidate) => candidate.id !== item.id));
+      router.refresh();
       if (editingId === item.id) stopEditing();
-      setMessage("リストから削除しました。");
+      setMessage(
+        item.bookId
+          ? "リストから削除しました。登録済みの蔵書は残ります。"
+          : "リストから削除しました。",
+      );
     } catch {
       setMessage("通信に失敗しました。時間をおいて再度お試しください。");
     } finally {
@@ -253,7 +268,9 @@ export function WishlistManager({
         </div>
         <div className="form-grid">
           <label className="span-2">
-            タイトル <b>必須</b>
+            <span className="field-label">
+              タイトル <b>必須</b>
+            </span>
             <input
               name="title"
               required
@@ -262,7 +279,9 @@ export function WishlistManager({
             />
           </label>
           <label>
-            対象日 <b>必須</b>
+            <span className="field-label">
+              対象日 <b>必須</b>
+            </span>
             <select name="eventDay" defaultValue={1} required>
               {eventDays.map((eventDay) => (
                 <option key={eventDay} value={eventDay}>
@@ -506,6 +525,15 @@ export function WishlistManager({
                         <span>{item.quantity}点</span>
                         {item.priceYen !== null ? (
                           <span>¥{item.priceYen.toLocaleString()}</span>
+                        ) : null}
+                        {item.bookId ? (
+                          <Link
+                            className="wishlist-book-link"
+                            href={`/books/${item.bookId}`}
+                          >
+                            <BookOpen size={13} />
+                            蔵書を見る
+                          </Link>
                         ) : null}
                       </div>
                       {item.notes ? <p>{item.notes}</p> : null}

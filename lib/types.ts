@@ -60,6 +60,7 @@ export type EventSummary = {
 export type WishlistItem = {
   id: string;
   eventId: string;
+  bookId: string | null;
   eventDay: number;
   title: string;
   circle: string;

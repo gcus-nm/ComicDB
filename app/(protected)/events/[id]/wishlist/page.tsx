@@ -5,6 +5,7 @@ import {
   CalendarDays,
   ChevronLeft,
   MapPin,
+  Pencil,
 } from "lucide-react";
 import { WishlistManager } from "@/components/wishlist-manager";
 import { getEvent, listWishlistItems } from "@/lib/catalog";
@@ -46,13 +47,22 @@ export default async function EventWishlistPage({
             ) : null}
           </p>
         </div>
-        <Link
-          href={`/events/${event.id}/register`}
-          className="secondary-button wishlist-register-link"
-        >
-          <BookPlus size={17} />
-          購入品を登録
-        </Link>
+        <div className="event-header-actions">
+          <Link
+            href={`/events/${event.id}/edit`}
+            className="secondary-button"
+          >
+            <Pencil size={17} />
+            イベント編集
+          </Link>
+          <Link
+            href={`/events/${event.id}/register`}
+            className="secondary-button wishlist-register-link"
+          >
+            <BookPlus size={17} />
+            購入品を登録
+          </Link>
+        </div>
       </section>
       <WishlistManager
         eventId={event.id}
