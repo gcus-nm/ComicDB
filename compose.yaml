@@ -6,6 +6,8 @@ services:
     restart: unless-stopped
     ports:
       - "${COMICDB_BIND_ADDRESS:-127.0.0.1}:${COMICDB_PORT:-3000}:3000"
+    expose:
+      - "3000"
     environment:
       APP_ORIGIN: "${APP_ORIGIN:-http://localhost:3000}"
       DATA_DIR: /data
@@ -21,6 +23,11 @@ services:
     volumes:
       - comicdb-data:/data
       - "${COMICDB_BACKUP_DIR:-./backups}:/backups"
+    networks:
+      default:
+      relay-ingress:
+        aliases:
+          - comicdb
     healthcheck:
       test:
         [
@@ -36,3 +43,9 @@ services:
 
 volumes:
   comicdb-data:
+
+networks:
+  default:
+  relay-ingress:
+    external: true
+    name: onprem-relay-ingress

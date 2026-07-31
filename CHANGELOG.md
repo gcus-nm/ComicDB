@@ -1,5 +1,12 @@
 # Changelog
 
+## 2026-07-31
+
+- ComicDBコンテナを既存のOCI Relay ingressネットワークへ接続し、
+  `https://comicdb.oci.gcusnm.mydns.jp` で公開できる構成を追加。
+- Relay経路へComicDB専用の自動生成Basic認証を追加し、アプリ認証との二重保護に対応。
+- 公開Origin、Relayの固定Dockerエイリアス、DNS・TLS・認証境界の検証手順を文書化。
+
 ## 2026-07-27
 
 - ほしいものを購入済みにすると蔵書と購入履歴を自動作成し、元項目から開けるようにした。

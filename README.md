@@ -24,7 +24,7 @@
 
 - Windows 10または11
 - Docker Desktop（WSL2バックエンド）
-- 既存のSoftEther VPNまたはWireGuard
+- 既存のOCI Relay、またはSoftEther VPN／WireGuard
 - バックアップ用の外付けHDD
 
 Docker DesktopをWindowsログイン時に起動する設定にしてください。
@@ -35,10 +35,10 @@ Docker DesktopをWindowsログイン時に起動する設定にしてくださ�
 
 ```dotenv
 APP_ORIGIN=https://comicdb.example.com
-COMICDB_BIND_ADDRESS=10.20.0.10
+COMICDB_BIND_ADDRESS=127.0.0.1
 COMICDB_PORT=3000
 COMICDB_BACKUP_DIR=D:/ComicDB/backups
-TRUSTED_PROXY_CIDRS=10.20.0.1/32
+TRUSTED_PROXY_CIDRS=
 GOOGLE_CLIENT_ID=...
 GOOGLE_CLIENT_SECRET=...
 GOOGLE_PICKER_API_KEY=...
@@ -46,10 +46,11 @@ GOOGLE_CLOUD_PROJECT_NUMBER=...
 GOOGLE_TOKEN_ENCRYPTION_KEY=...
 ```
 
-- `APP_ORIGIN`: VPS側リバースプロキシで利用する正式なHTTPS URL
-- `COMICDB_BIND_ADDRESS`: WindowsミニPCのVPN側IP。ローカルだけなら `127.0.0.1`
+- `APP_ORIGIN`: 外部から利用する正式なHTTPS URL
+- `COMICDB_BIND_ADDRESS`: ホスト側の待受アドレス。OCI Relay利用時は `127.0.0.1`
 - `COMICDB_BACKUP_DIR`: 外付けHDD上のバックアップフォルダー
-- `TRUSTED_PROXY_CIDRS`: VPSのVPN側アドレス。値があると転送元IPをログイン制限に利用
+- `TRUSTED_PROXY_CIDRS`: 値があると `X-Forwarded-For` をログイン制限に利用。
+  OCI Relay構成では空のままにする
 - `GOOGLE_TOKEN_ENCRYPTION_KEY`: Refresh Token暗号化用の32バイト鍵。たとえば
   `openssl rand -base64 32` で生成し、バックアップとは別に安全に保管
 
@@ -68,7 +69,51 @@ docker compose ps
 初回アクセス時は管理者作成画面が表示されます。ユーザー名と12文字以上の
 パスワードを設定してください。2人目以降のユーザー作成画面はありません。
 
-## VPS側HTTPSリバースプロキシ
+## OCI Relayで公開
+
+このリポジトリの本番構成では、次の値を使用します。
+
+| 項目 | 値 |
+| --- | --- |
+| 公開URL | `https://comicdb.oci.gcusnm.mydns.jp` |
+| Docker外部ネットワーク | `onprem-relay-ingress` |
+| Relay向け固定エイリアス | `comicdb` |
+| コンテナーポート | `3000` |
+| Relay側Basic認証ユーザー名 | `comicdb` |
+
+`.env` の `APP_ORIGIN` を公開URLへ設定してコンテナーを再作成した後、OCI Relay
+ControlへWeb経路を登録します。Composeのホスト公開は `127.0.0.1` のまま維持し、
+Relayからは共有Dockerネットワーク上の `comicdb:3000` へ接続します。
+
+公開経路にはComicDB自身のログインより手前で専用Basic認証を適用します。パスワードは
+Relay Controlが自動生成し、Git管理外の `.env.basic-auth` へ一度だけ保存します。
+Relay Control管理画面の認証情報は流用しません。
+
+公開後は少なくとも次を確認します。
+
+```powershell
+docker compose config --quiet
+docker compose up -d --build --force-recreate
+docker compose ps
+curl.exe --head https://comicdb.oci.gcusnm.mydns.jp/api/health
+```
+
+最後のコマンドは資格情報なしのため `401 Unauthorized` と
+`WWW-Authenticate` を返すのが正常です。`.env.basic-auth` の資格情報を付けた場合だけ
+ヘルスAPIが `200` になることを確認します。ファイルの値をログ、Issue、コミットへ
+貼り付けないでください。
+
+Google連携を使用している場合は、Picker API KeyのReferrerへ公開Originを追加し、
+OAuth Clientの承認済みリダイレクトURIへ次を追加してから接続し直してください。
+
+```text
+https://comicdb.oci.gcusnm.mydns.jp/api/google/oauth/callback
+```
+
+詳しくは[Googleスプレッドシート連携セットアップ](docs/google-sheets-setup.md)の
+「本番HTTPS URLへ切り替える」を参照してください。
+
+## VPN経由のHTTPSリバースプロキシ
 
 VPSとWindowsミニPCの間は既存VPN経由で接続してください。ComicDBはVPNや証明書を
 構築しません。
