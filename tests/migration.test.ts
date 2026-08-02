@@ -19,7 +19,7 @@ afterEach(() => {
 });
 
 describe("DBマイグレーション", () => {
-  it("v6のリスト対象日を各項目へ引き継ぎ、蔵書との関連を追加してv8へ移行する", () => {
+  it("v6のリスト対象日を引き継ぎ、蔵書関連と自動化API記録を追加してv9へ移行する", () => {
     tempDir = mkdtempSync(path.join(os.tmpdir(), "comicdb-migration-"));
     const dataDir = path.join(tempDir, "data");
     const backupDir = path.join(tempDir, "backups");
@@ -109,7 +109,7 @@ describe("DBマイグレーション", () => {
     });
 
     const migrated = new Database(databasePath, { readonly: true });
-    expect(migrated.pragma("user_version", { simple: true })).toBe(8);
+    expect(migrated.pragma("user_version", { simple: true })).toBe(9);
     expect(
       migrated
         .prepare("SELECT event_day FROM wishlist_items WHERE id = ?")
@@ -154,6 +154,15 @@ describe("DBマイグレーション", () => {
         .pluck()
         .get("wishlist-1"),
     ).toBeNull();
+    expect(
+      migrated
+        .prepare(
+          `SELECT COUNT(*) FROM sqlite_master
+           WHERE type = 'table' AND name IN ('api_audit_logs', 'api_idempotency_records')`,
+        )
+        .pluck()
+        .get(),
+    ).toBe(2);
     migrated.close();
 
     expect(

@@ -213,6 +213,63 @@ Externalアプリの認可とRefresh Tokenが
 使用しません。Refresh TokenだけをAES-256-GCM暗号文としてSQLiteへ保存し、
 Access Tokenは永続化しません。
 
+## CLIと自動化API
+
+蔵書・イベントの主要な読取、登録、更新、蔵書削除、操作監査は、Web UIと同じ
+Application Serviceを使う非対話CLIから実行できます。機械可読なAPI契約は
+[docs/automation-api.yaml](docs/automation-api.yaml)を参照してください。表紙画像の
+追加・差し替えは、ファイル検査とプレビューが必要なため引き続きWeb UIで行います。
+
+`.env`へ読取用と変更用で異なるランダムトークンを設定し、コンテナを再作成します。
+どちらも32文字以上が必要です。読取だけを行うAIには変更用トークンを渡さないでください。
+
+```dotenv
+COMICDB_API_READ_TOKEN=読取専用のランダム値
+COMICDB_API_WRITE_TOKEN=変更専用の別ランダム値
+```
+
+```bash
+openssl rand -base64 48
+openssl rand -base64 48
+docker compose up -d --build --force-recreate
+```
+
+CLIをコンテナ内で実行すると、トークンをコマンド引数やURLへ含めず環境から取得できます。
+
+```bash
+docker compose exec comicdb npm run cli -- books list --limit 20 --json
+docker compose exec comicdb npm run cli -- events list --json
+docker compose exec comicdb npm run cli -- audit --limit 50 --json
+```
+
+登録・更新データはJSONファイルまたは標準入力から渡します。`--dry-run`はバックエンドで
+認証・入力検証・業務ルールを実行し、変更対象を返しますがSQLiteを変更しません。
+
+```json
+{
+  "title": "CLI登録例",
+  "circles": ["サークル名"],
+  "adultRating": "general",
+  "quantity": 1
+}
+```
+
+```bash
+docker compose exec -T comicdb npm run cli -- books create --input - --dry-run --json < book.json
+```
+
+実変更では接続先Originと冪等性キーが必須です。同じキー・同じ要求を24時間以内に
+再試行すると、重複登録せず前回の成功結果を返します。異なる要求へ同じキーを使うと
+`409 Conflict`になります。
+
+```bash
+docker compose exec -T comicdb npm run cli -- books create --input - --confirm http://127.0.0.1:3000 --idempotency-key book-register-20260803-01 --json < book.json
+```
+
+蔵書の完全削除では、Originに加えて`--confirm-delete <蔵書ID>`も一致させる必要があります。
+成功データは標準出力、失敗対象・理由・再試行可否を持つJSONエラーは標準エラーへ分離されます。
+終了コードと全コマンド例は`docker compose exec comicdb npm run cli -- --help`で確認できます。
+
 ## CSV
 
 「設定」から日本語見出しのCSVテンプレートと全件データを取得できます。取込時は

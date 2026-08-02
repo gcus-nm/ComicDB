@@ -1,4 +1,5 @@
 import { appOrigin } from "./env";
+import { ZodError } from "zod";
 
 export class HttpError extends Error {
   constructor(
@@ -30,6 +31,18 @@ export function clientAddress(request: Request) {
 
 export function errorResponse(error: unknown) {
   const headers = { "Cache-Control": "private, no-store" };
+  if (error instanceof ZodError) {
+    return Response.json(
+      {
+        error: "入力が不正です。",
+        issues: error.issues.map((issue) => ({
+          path: issue.path.join("."),
+          message: issue.message,
+        })),
+      },
+      { status: 400, headers },
+    );
+  }
   if (error instanceof HttpError) {
     return Response.json(
       { error: error.message },

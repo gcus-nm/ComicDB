@@ -1,0 +1,194 @@
+openapi: 3.1.0
+info:
+  title: ComicDB Automation API
+  version: 1.0.0
+  description: >-
+    Authenticated API for the non-interactive CLI and AI tools. Read and write
+    tokens must be different. Real mutations require Idempotency-Key; dryRun
+    validates with the same application services without changing state.
+servers:
+  - url: http://127.0.0.1:3000
+security:
+  - bearerAuth: []
+paths:
+  /api/automation/v1/books:
+    get:
+      operationId: listBooks
+      parameters:
+        - { name: q, in: query, schema: { type: string } }
+        - { name: page, in: query, schema: { type: integer, minimum: 1, default: 1 } }
+        - { name: limit, in: query, schema: { type: integer, minimum: 1, maximum: 2000, default: 100 } }
+      responses:
+        '200': { $ref: '#/components/responses/JsonSuccess' }
+    post:
+      operationId: createBook
+      description: Requires the write token. Cover upload remains a Web UI operation.
+      parameters:
+        - $ref: '#/components/parameters/AutomationHeader'
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody: { $ref: '#/components/requestBodies/BookMutation' }
+      responses:
+        '200': { $ref: '#/components/responses/DryRun' }
+        '201': { $ref: '#/components/responses/JsonSuccess' }
+        '409': { $ref: '#/components/responses/Conflict' }
+  /api/automation/v1/books/{id}:
+    parameters:
+      - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+    get:
+      operationId: getBook
+      responses:
+        '200': { $ref: '#/components/responses/JsonSuccess' }
+        '404': { $ref: '#/components/responses/Error' }
+    patch:
+      operationId: updateBook
+      parameters:
+        - $ref: '#/components/parameters/AutomationHeader'
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody: { $ref: '#/components/requestBodies/BookMutation' }
+      responses:
+        '200': { $ref: '#/components/responses/JsonSuccess' }
+        '409': { $ref: '#/components/responses/Conflict' }
+    delete:
+      operationId: deleteBook
+      parameters:
+        - $ref: '#/components/parameters/AutomationHeader'
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [confirmation]
+              properties:
+                confirmation: { type: string, description: Must exactly match the path id. }
+                dryRun: { type: boolean, default: false }
+      responses:
+        '200': { $ref: '#/components/responses/JsonSuccess' }
+        '409': { $ref: '#/components/responses/Conflict' }
+  /api/automation/v1/events:
+    get:
+      operationId: listEvents
+      parameters:
+        - { name: limit, in: query, schema: { type: integer, minimum: 1, maximum: 500, default: 100 } }
+      responses:
+        '200': { $ref: '#/components/responses/JsonSuccess' }
+    post:
+      operationId: createEvent
+      parameters:
+        - $ref: '#/components/parameters/AutomationHeader'
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody: { $ref: '#/components/requestBodies/EventMutation' }
+      responses:
+        '200': { $ref: '#/components/responses/DryRun' }
+        '201': { $ref: '#/components/responses/JsonSuccess' }
+  /api/automation/v1/events/{id}:
+    parameters:
+      - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+    get:
+      operationId: getEvent
+      responses:
+        '200': { $ref: '#/components/responses/JsonSuccess' }
+    patch:
+      operationId: updateEvent
+      parameters:
+        - $ref: '#/components/parameters/AutomationHeader'
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody: { $ref: '#/components/requestBodies/EventMutation' }
+      responses:
+        '200': { $ref: '#/components/responses/JsonSuccess' }
+        '409': { $ref: '#/components/responses/Conflict' }
+  /api/automation/v1/audit:
+    get:
+      operationId: listAutomationAudit
+      parameters:
+        - { name: limit, in: query, schema: { type: integer, minimum: 1, maximum: 500, default: 100 } }
+      responses:
+        '200': { $ref: '#/components/responses/JsonSuccess' }
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      description: COMICDB_API_READ_TOKEN for reads or COMICDB_API_WRITE_TOKEN for mutations.
+  parameters:
+    AutomationHeader:
+      name: X-ComicDB-Request
+      in: header
+      required: true
+      schema: { const: '1' }
+    IdempotencyKey:
+      name: Idempotency-Key
+      in: header
+      required: false
+      description: Required for real mutations; not required for dryRun. Successful results are retained for 24 hours.
+      schema: { type: string, minLength: 8, maxLength: 128, pattern: '^[A-Za-z0-9._:-]+$' }
+  requestBodies:
+    BookMutation:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            additionalProperties: false
+            required: [input]
+            properties:
+              dryRun: { type: boolean, default: false }
+              input: { $ref: '#/components/schemas/BookInput' }
+    EventMutation:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            additionalProperties: false
+            required: [input]
+            properties:
+              dryRun: { type: boolean, default: false }
+              input: { $ref: '#/components/schemas/EventInput' }
+  schemas:
+    BookInput:
+      type: object
+      required: [title]
+      properties:
+        title: { type: string, minLength: 1, maxLength: 300 }
+        circles: { oneOf: [ { type: string }, { type: array, items: { type: string } } ] }
+        creators: { oneOf: [ { type: string }, { type: array, items: { type: string } } ] }
+        fandoms: { oneOf: [ { type: string }, { type: array, items: { type: string } } ] }
+        characters: { oneOf: [ { type: string }, { type: array, items: { type: string } } ] }
+        pairings: { oneOf: [ { type: string }, { type: array, items: { type: string } } ] }
+        tags: { oneOf: [ { type: string }, { type: array, items: { type: string } } ] }
+        adultRating: { type: string, enum: [general, r18], default: general }
+        publishedOn: { type: string }
+        edition: { type: string, maxLength: 120 }
+        readStatus: { type: string, enum: [unread, reading, read], default: unread }
+        ownershipStatus: { type: string, enum: [owned, disposed], default: owned }
+        favorite: { type: boolean, default: false }
+        notes: { type: string, maxLength: 5000 }
+        eventId: { type: [string, 'null'] }
+        purchasedOn: { type: string }
+        priceYen: { type: [integer, 'null'], minimum: 0 }
+        quantity: { type: integer, minimum: 1, maximum: 99, default: 1 }
+    EventInput:
+      type: object
+      required: [name, startsOn]
+      properties:
+        name: { type: string, minLength: 1, maxLength: 200 }
+        startsOn: { type: string, format: date }
+        endsOn: { type: string }
+        venue: { type: string, maxLength: 200 }
+        notes: { type: string, maxLength: 2000 }
+  responses:
+    JsonSuccess:
+      description: Successful JSON result
+      content: { application/json: { schema: {} } }
+    DryRun:
+      description: Validated no-change result with an affected-target summary
+      content: { application/json: { schema: { type: object, required: [ok, dryRun, summary] } } }
+    Error:
+      description: Structured validation, authentication, or lookup error
+      content: { application/json: { schema: { type: object, required: [error] } } }
+    Conflict:
+      description: Business-state conflict or conflicting reuse of an idempotency key
+      content: { application/json: { schema: { type: object, required: [error] } } }
