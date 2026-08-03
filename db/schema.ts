@@ -286,3 +286,34 @@ export const googleOauthStates = sqliteTable(
   },
   (table) => [index("google_oauth_states_expires_idx").on(table.expiresAt)],
 );
+
+export const apiAuditLogs = sqliteTable(
+  "api_audit_logs",
+  {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    at: text("at").notNull(),
+    actor: text("actor").notNull(),
+    action: text("action").notNull(),
+    target: text("target"),
+    result: text("result").notNull(),
+    detail: text("detail").notNull().default(""),
+  },
+  (table) => [index("api_audit_logs_at_idx").on(table.at)],
+);
+
+export const apiIdempotencyRecords = sqliteTable(
+  "api_idempotency_records",
+  {
+    actor: text("actor").notNull(),
+    keyHash: text("key_hash").notNull(),
+    scope: text("scope").notNull(),
+    requestHash: text("request_hash").notNull(),
+    status: integer("status").notNull(),
+    responseJson: text("response_json").notNull(),
+    createdAt: text("created_at").notNull(),
+  },
+  (table) => [
+    uniqueIndex("api_idempotency_actor_key_uq").on(table.actor, table.keyHash),
+    index("api_idempotency_created_at_idx").on(table.createdAt),
+  ],
+);
