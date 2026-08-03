@@ -21,7 +21,7 @@ WORKDIR /app
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV HOSTNAME=0.0.0.0
-ENV PORT=3000
+ENV PORT=8080
 ENV DATA_DIR=/data
 ENV BACKUP_DIR=/backups
 RUN groupadd --system --gid 1001 comicdb \
@@ -35,5 +35,5 @@ COPY --from=builder --chown=comicdb:comicdb /app/package.json ./package.json
 COPY --from=builder --chown=comicdb:comicdb /app/scripts ./scripts
 COPY --from=builder --chown=comicdb:comicdb /app/drizzle ./drizzle
 USER comicdb
-EXPOSE 3000
+EXPOSE 8080
 CMD ["npm", "start"]
