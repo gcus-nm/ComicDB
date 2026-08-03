@@ -78,12 +78,12 @@ docker compose ps
 | 公開URL | `https://comicdb.oci.gcusnm.mydns.jp` |
 | Docker外部ネットワーク | `onprem-relay-ingress` |
 | Relay向け固定エイリアス | `comicdb` |
-| コンテナーポート | `3000` |
+| コンテナーポート | `8080` |
 | Relay側Basic認証ユーザー名 | `comicdb` |
 
 `.env` の `APP_ORIGIN` を公開URLへ設定してコンテナーを再作成した後、OCI Relay
 ControlへWeb経路を登録します。Composeのホスト公開は `127.0.0.1` のまま維持し、
-Relayからは共有Dockerネットワーク上の `comicdb:3000` へ接続します。
+Relayからは共有Dockerネットワーク上の `comicdb:8080` へ接続します。
 
 公開経路にはComicDB自身のログインより手前で専用Basic認証を適用します。パスワードは
 Relay Controlが自動生成し、Git管理外の `.env.basic-auth` へ一度だけ保存します。

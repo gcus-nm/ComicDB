@@ -7,7 +7,7 @@
 - 構造化データと画像は `DATA_DIR` 配下へ保存し、ブラウザー保存領域を正本にしない。
 - 外部公開は既存のOCI Relay Controlを利用し、ComicDB自身へTLS終端やトンネルを追加しない。
 - Relay公開時は外部Dockerネットワーク `onprem-relay-ingress`、固定エイリアス
-  `comicdb`、コンテナーポート `3000` を使用する。
+  `comicdb`、コンテナーポート `8080` を使用する。
 
 ## セキュリティ
 
