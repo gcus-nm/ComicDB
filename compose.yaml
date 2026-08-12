@@ -27,9 +27,6 @@ services:
       - "${COMICDB_BACKUP_DIR:-./backups}:/backups"
     networks:
       default:
-      relay-ingress:
-        aliases:
-          - comicdb
     healthcheck:
       test:
         [
@@ -48,6 +45,3 @@ volumes:
 
 networks:
   default:
-  relay-ingress:
-    external: true
-    name: onprem-relay-ingress
