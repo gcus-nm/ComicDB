@@ -162,22 +162,41 @@ describe("蔵書管理", () => {
       venue: "東京ビッグサイト",
       notes: "",
     }))!;
+    const fandom = createTaxonomyTag("作品A", "fandom");
+    const character = createTaxonomyTag("主人公", "character", fandom.id);
+    const pairing = createTaxonomyTag("主人公×相棒", "pairing", fandom.id);
 
     const item = createWishlistItem(event.id, {
       eventDay: 2,
       title: "新刊セット",
       circle: "星空書房",
+      creators: "山田、佐藤",
+      fandomTagIds: [fandom.id],
+      characterTagIds: [character.id],
+      pairingTagIds: [pairing.id],
+      genres: "漫画",
+      tags: "新刊、会場限定",
+      adultRating: "r18",
+      publishedOn: "2026-08-10",
+      edition: "初版",
       booth: "東A-01a",
       quantity: 2,
       priceYen: 1000,
       notes: "会場限定",
       purchased: false,
+    }, {
+      coverPath: "media/covers/wishlist.webp",
+      thumbnailPath: "media/thumbs/wishlist.webp",
     })!;
     expect(
       wishlistItemUpdateSchema.parse({ eventDay: 3, purchased: true }),
     ).toEqual({ eventDay: 3, purchased: true });
 
     expect(listWishlistItems(event.id)).toEqual([item]);
+    expect(listTaxonomyTags().find((tag) => tag.id === fandom.id)?.usageCount).toBe(1);
+    expect(() => deleteTaxonomyTag(character.id)).toThrow(
+      "蔵書またはほしいものリストで使用中",
+    );
     expect(listEvents()[0]).toMatchObject({
       wishlistCount: 1,
       wishlistRemainingCount: 1,
@@ -193,6 +212,17 @@ describe("蔵書管理", () => {
       purchased: true,
       quantity: 1,
       circle: "星空書房",
+      creators: "山田、佐藤",
+      fandomTagIds: [fandom.id],
+      characterTagIds: [character.id],
+      pairingTagIds: [pairing.id],
+      genres: "漫画",
+      tags: "新刊、会場限定",
+      adultRating: "r18",
+      publishedOn: "2026-08-10",
+      edition: "初版",
+      coverUrl: "/api/media/media/covers/wishlist.webp",
+      thumbnailUrl: "/api/media/media/thumbs/wishlist.webp",
       booth: "東A-01a",
       priceYen: 1000,
       notes: "会場限定",
@@ -202,6 +232,20 @@ describe("蔵書管理", () => {
     expect(registeredBook).toMatchObject({
       title: "新刊セット",
       circles: ["星空書房"],
+      creators: ["佐藤", "山田"],
+      adultRating: "r18",
+      publishedOn: "2026-08-10",
+      edition: "初版",
+      notes: "会場限定",
+      coverUrl: "/api/media/media/covers/wishlist.webp",
+      thumbnailUrl: "/api/media/media/thumbs/wishlist.webp",
+      tags: expect.arrayContaining([
+        expect.objectContaining({ id: fandom.id, type: "fandom" }),
+        expect.objectContaining({ id: character.id, type: "character" }),
+        expect.objectContaining({ id: pairing.id, type: "pairing" }),
+        expect.objectContaining({ name: "漫画", type: "genre" }),
+        expect.objectContaining({ name: "新刊", type: "custom" }),
+      ]),
       ownedCount: 1,
       acquisitions: [
         {
@@ -209,7 +253,7 @@ describe("蔵書管理", () => {
           purchasedOn: "2026-08-17",
           priceYen: 1000,
           quantity: 1,
-          notes: "配置: 東A-01a\n会場限定",
+          notes: "配置: 東A-01a",
         },
       ],
     });

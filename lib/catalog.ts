@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
 import type { z } from "zod";
 import { getDb } from "@/db";
-import type {
+import {
   bookInputSchema,
   eventInputSchema,
   wishlistItemInputSchema,
@@ -24,7 +24,7 @@ import {
 type BookInput = z.infer<typeof bookInputSchema>;
 type BookMedia = { coverPath: string; thumbnailPath: string };
 type EventInput = z.infer<typeof eventInputSchema>;
-type WishlistItemInput = z.infer<typeof wishlistItemInputSchema>;
+type WishlistItemInput = z.input<typeof wishlistItemInputSchema>;
 type WishlistItemUpdateInput = z.infer<typeof wishlistItemUpdateSchema>;
 
 type BookRow = {
@@ -578,6 +578,18 @@ export function updateBook(
       now,
       id,
     );
+    if (media !== undefined) {
+      db.prepare(
+        `UPDATE wishlist_items
+         SET cover_path = ?, thumbnail_path = ?, updated_at = ?
+         WHERE book_id = ?`,
+      ).run(
+        media?.coverPath ?? null,
+        media?.thumbnailPath ?? null,
+        now,
+        id,
+      );
+    }
     replaceRelationships(id, input, now);
   });
   transaction();
@@ -668,6 +680,11 @@ export function deleteBook(id: string) {
     if (getDb().ftsAvailable) {
       db.prepare("DELETE FROM books_search WHERE book_id = ?").run(id);
     }
+    db.prepare(
+      `UPDATE wishlist_items
+       SET cover_path = NULL, thumbnail_path = NULL, updated_at = ?
+       WHERE book_id = ?`,
+    ).run(new Date().toISOString(), id);
     db.prepare("DELETE FROM books WHERE id = ?").run(id);
   })();
   return [row.cover_path, row.thumbnail_path].filter(
@@ -847,6 +864,17 @@ type WishlistItemRow = {
   event_day: number;
   title: string;
   circle: string;
+  creators: string;
+  fandom_tag_ids: string;
+  character_tag_ids: string;
+  pairing_tag_ids: string;
+  genres: string;
+  tags: string;
+  adult_rating: "general" | "r18";
+  published_on: string | null;
+  edition: string;
+  cover_path: string | null;
+  thumbnail_path: string | null;
   booth: string;
   quantity: number;
   price_yen: number | null;
@@ -864,6 +892,17 @@ function toWishlistItem(row: WishlistItemRow): WishlistItem {
     eventDay: row.event_day,
     title: row.title,
     circle: row.circle,
+    creators: row.creators,
+    fandomTagIds: parseJson<string[]>(row.fandom_tag_ids, []),
+    characterTagIds: parseJson<string[]>(row.character_tag_ids, []),
+    pairingTagIds: parseJson<string[]>(row.pairing_tag_ids, []),
+    genres: row.genres,
+    tags: row.tags,
+    adultRating: row.adult_rating,
+    publishedOn: row.published_on,
+    edition: row.edition,
+    coverUrl: row.cover_path ? `/api/media/${row.cover_path}` : null,
+    thumbnailUrl: row.thumbnail_path ? `/api/media/${row.thumbnail_path}` : null,
     booth: row.booth,
     quantity: row.quantity,
     priceYen: row.price_yen,
@@ -872,6 +911,33 @@ function toWishlistItem(row: WishlistItemRow): WishlistItem {
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };
+}
+
+function validateWishlistTaxonomies(
+  fandomTagIds: string[],
+  characterTagIds: string[],
+  pairingTagIds: string[],
+) {
+  const db = getDb().sqlite;
+  for (const id of fandomTagIds) {
+    if (!db.prepare("SELECT id FROM tags WHERE id = ? AND type = 'fandom'").get(id)) {
+      throw new Error("選択された作品が見つかりません。");
+    }
+  }
+  for (const [type, ids] of [
+    ["character", characterTagIds],
+    ["pairing", pairingTagIds],
+  ] as const) {
+    for (const id of ids) {
+      const tag = db
+        .prepare("SELECT parent_tag_id FROM tags WHERE id = ? AND type = ?")
+        .get(id, type) as { parent_tag_id: string | null } | undefined;
+      if (!tag) throw new Error("選択された分類が見つかりません。");
+      if (tag.parent_tag_id && !fandomTagIds.includes(tag.parent_tag_id)) {
+        throw new Error("選択した作品に属さない分類が含まれています。");
+      }
+    }
+  }
 }
 
 export function getWishlistItem(id: string) {
@@ -894,8 +960,14 @@ export function listWishlistItems(eventId: string): WishlistItem[] {
 
 export function createWishlistItem(
   eventId: string,
-  input: WishlistItemInput,
+  rawInput: WishlistItemInput,
+  media?: BookMedia | null,
 ) {
+  const input = wishlistItemInputSchema.parse(rawInput);
+  const fandomTagIds = splitNames(input.fandomTagIds);
+  const characterTagIds = splitNames(input.characterTagIds);
+  const pairingTagIds = splitNames(input.pairingTagIds);
+  validateWishlistTaxonomies(fandomTagIds, characterTagIds, pairingTagIds);
   const db = getDb().sqlite;
   const event = db
     .prepare("SELECT id, starts_on, ends_on FROM events WHERE id = ?")
@@ -913,15 +985,28 @@ export function createWishlistItem(
   const transaction = db.transaction(() => {
     db.prepare(
       `INSERT INTO wishlist_items (
-        id, event_id, event_day, title, circle, booth, quantity, price_yen,
-        notes, purchased, created_at, updated_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        id, event_id, event_day, title, circle, creators, fandom_tag_ids,
+        character_tag_ids, pairing_tag_ids, genres, tags, adult_rating,
+        published_on, edition, cover_path, thumbnail_path, booth, quantity,
+        price_yen, notes, purchased, created_at, updated_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     ).run(
       id,
       eventId,
       input.eventDay,
       input.title,
       input.circle,
+      splitNames(input.creators).join("、"),
+      JSON.stringify(fandomTagIds),
+      JSON.stringify(characterTagIds),
+      JSON.stringify(pairingTagIds),
+      splitNames(input.genres).join("、"),
+      splitNames(input.tags).join("、"),
+      input.adultRating,
+      input.publishedOn || null,
+      input.edition,
+      media?.coverPath ?? null,
+      media?.thumbnailPath ?? null,
       input.booth,
       input.quantity,
       input.priceYen ?? null,
@@ -940,6 +1025,7 @@ export function createWishlistItem(
 export function updateWishlistItem(
   id: string,
   input: WishlistItemUpdateInput,
+  media?: BookMedia | null,
 ) {
   const current = getWishlistItem(id);
   if (!current) return null;
@@ -954,6 +1040,30 @@ export function updateWishlistItem(
 
   const title = input.title ?? current.title;
   const circle = input.circle ?? current.circle;
+  const creators = input.creators === undefined
+    ? current.creators
+    : splitNames(input.creators).join("、");
+  const fandomTagIds = input.fandomTagIds === undefined
+    ? current.fandomTagIds
+    : splitNames(input.fandomTagIds);
+  const characterTagIds = input.characterTagIds === undefined
+    ? current.characterTagIds
+    : splitNames(input.characterTagIds);
+  const pairingTagIds = input.pairingTagIds === undefined
+    ? current.pairingTagIds
+    : splitNames(input.pairingTagIds);
+  validateWishlistTaxonomies(fandomTagIds, characterTagIds, pairingTagIds);
+  const genres = input.genres === undefined
+    ? current.genres
+    : splitNames(input.genres).join("、");
+  const tags = input.tags === undefined
+    ? current.tags
+    : splitNames(input.tags).join("、");
+  const adultRating = input.adultRating ?? current.adultRating;
+  const publishedOn = input.publishedOn === undefined
+    ? current.publishedOn
+    : input.publishedOn || null;
+  const edition = input.edition ?? current.edition;
   const booth = input.booth ?? current.booth;
   const quantity = input.quantity ?? current.quantity;
   const priceYen =
@@ -962,45 +1072,56 @@ export function updateWishlistItem(
   const purchased = input.purchased ?? current.purchased;
   const db = getDb().sqlite;
 
+  if (current.bookId && media !== undefined) {
+    throw new Error("購入済みの表紙は蔵書編集画面から変更してください。");
+  }
+  const currentMedia = getWishlistItemMedia(id);
+  const nextMedia = media === undefined ? currentMedia : media;
+
   const transaction = db.transaction(() => {
     let bookId = current.bookId;
     if (purchased && !bookId) {
       const acquisitionNotes = [
         booth ? `配置: ${booth}` : "",
-        notes,
       ].filter(Boolean).join("\n");
       const book = createBook({
         title,
         circles: circle,
-        creators: "",
+        creators,
         fandoms: "",
         characters: "",
         pairings: "",
-        genres: "",
-        tags: "",
-        adultRating: "general",
-        publishedOn: "",
-        edition: "",
+        fandomTagIds,
+        characterTagIds,
+        pairingTagIds,
+        genres,
+        tags,
+        adultRating,
+        publishedOn: publishedOn ?? "",
+        edition,
         storageLocationId: null,
         storageLocation: "",
         readStatus: "unread",
         ownershipStatus: "owned",
         favorite: false,
-        notes: "",
+        notes,
         eventId: current.eventId,
         purchasedOn:
           eventDateForDay(event.starts_on, eventDay) ?? event.starts_on,
         priceYen,
         quantity,
         acquisitionNotes,
-      });
+      }, nextMedia);
       bookId = book.id;
     }
 
     db.prepare(
       `UPDATE wishlist_items SET
-        book_id = ?, event_day = ?, title = ?, circle = ?, booth = ?,
-        quantity = ?, price_yen = ?, notes = ?, purchased = ?, updated_at = ?
+        book_id = ?, event_day = ?, title = ?, circle = ?, creators = ?,
+        fandom_tag_ids = ?, character_tag_ids = ?, pairing_tag_ids = ?,
+        genres = ?, tags = ?, adult_rating = ?, published_on = ?, edition = ?,
+        cover_path = ?, thumbnail_path = ?, booth = ?, quantity = ?,
+        price_yen = ?, notes = ?, purchased = ?, updated_at = ?
        WHERE id = ?`,
     )
     .run(
@@ -1008,6 +1129,17 @@ export function updateWishlistItem(
       eventDay,
       title,
       circle,
+      creators,
+      JSON.stringify(fandomTagIds),
+      JSON.stringify(characterTagIds),
+      JSON.stringify(pairingTagIds),
+      genres,
+      tags,
+      adultRating,
+      publishedOn,
+      edition,
+      nextMedia?.coverPath ?? null,
+      nextMedia?.thumbnailPath ?? null,
       booth,
       quantity,
       priceYen,
@@ -1019,6 +1151,21 @@ export function updateWishlistItem(
     return getWishlistItem(id)!;
   });
   return transaction();
+}
+
+export function getWishlistItemMedia(id: string) {
+  const row = getDb().sqlite
+    .prepare("SELECT cover_path, thumbnail_path FROM wishlist_items WHERE id = ?")
+    .get(id) as
+    | { cover_path: string | null; thumbnail_path: string | null }
+    | undefined;
+  if (!row || !row.cover_path || !row.thumbnail_path) return null;
+  return { coverPath: row.cover_path, thumbnailPath: row.thumbnail_path };
+}
+
+export function getWishlistItemMediaPaths(id: string) {
+  const media = getWishlistItemMedia(id);
+  return media ? [media.coverPath, media.thumbnailPath] : [];
 }
 
 export function deleteWishlistItem(id: string) {
@@ -1084,12 +1231,15 @@ export function listTaxonomyTags(): TaxonomyTag[] {
   return getDb().sqlite
     .prepare(
       `SELECT t.id, t.name, t.type, t.parent_tag_id, parent.name AS parent_name,
-              COUNT(bt.book_id) AS usage_count
+              (SELECT COUNT(*) FROM book_tags bt WHERE bt.tag_id = t.id) +
+              (SELECT COUNT(*) FROM wishlist_items w
+               WHERE EXISTS (SELECT 1 FROM json_each(w.fandom_tag_ids) WHERE value = t.id)
+                  OR EXISTS (SELECT 1 FROM json_each(w.character_tag_ids) WHERE value = t.id)
+                  OR EXISTS (SELECT 1 FROM json_each(w.pairing_tag_ids) WHERE value = t.id))
+                AS usage_count
        FROM tags t
-       LEFT JOIN book_tags bt ON bt.tag_id = t.id
        LEFT JOIN tags parent ON parent.id = t.parent_tag_id
        WHERE t.type IN ('fandom', 'character', 'pairing')
-       GROUP BY t.id
        ORDER BY COALESCE(parent.normalized_name, t.normalized_name),
                 CASE t.type WHEN 'fandom' THEN 0 WHEN 'character' THEN 1 ELSE 2 END,
                 t.normalized_name`,
@@ -1169,16 +1319,21 @@ export function deleteTaxonomyTag(id: string) {
   const db = getDb().sqlite;
   const row = db
     .prepare(
-      `SELECT t.id, COUNT(bt.book_id) AS usage_count
+      `SELECT t.id,
+              (SELECT COUNT(*) FROM book_tags bt WHERE bt.tag_id = t.id) +
+              (SELECT COUNT(*) FROM wishlist_items w
+               WHERE EXISTS (SELECT 1 FROM json_each(w.fandom_tag_ids) WHERE value = t.id)
+                  OR EXISTS (SELECT 1 FROM json_each(w.character_tag_ids) WHERE value = t.id)
+                  OR EXISTS (SELECT 1 FROM json_each(w.pairing_tag_ids) WHERE value = t.id))
+                AS usage_count
        FROM tags t
-       LEFT JOIN book_tags bt ON bt.tag_id = t.id
        WHERE t.id = ? AND t.type IN ('fandom', 'character', 'pairing')
-       GROUP BY t.id`,
+      `,
     )
     .get(id) as { id: string; usage_count: number } | undefined;
   if (!row) throw new Error("分類が見つかりません。");
   if (row.usage_count > 0) {
-    throw new Error("蔵書で使用中の分類は削除できません。");
+    throw new Error("蔵書またはほしいものリストで使用中の分類は削除できません。");
   }
   const child = db
     .prepare("SELECT id FROM tags WHERE parent_tag_id = ? LIMIT 1")

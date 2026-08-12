@@ -19,7 +19,7 @@ afterEach(() => {
 });
 
 describe("DBマイグレーション", () => {
-  it("v6のリスト対象日を引き継ぎ、蔵書関連と自動化API記録を追加してv9へ移行する", () => {
+  it("v6のリスト対象日を引き継ぎ、蔵書詳細と自動化API記録を追加してv10へ移行する", () => {
     tempDir = mkdtempSync(path.join(os.tmpdir(), "comicdb-migration-"));
     const dataDir = path.join(tempDir, "data");
     const backupDir = path.join(tempDir, "backups");
@@ -109,7 +109,7 @@ describe("DBマイグレーション", () => {
     });
 
     const migrated = new Database(databasePath, { readonly: true });
-    expect(migrated.pragma("user_version", { simple: true })).toBe(9);
+    expect(migrated.pragma("user_version", { simple: true })).toBe(10);
     expect(
       migrated
         .prepare("SELECT event_day FROM wishlist_items WHERE id = ?")
@@ -154,6 +154,19 @@ describe("DBマイグレーション", () => {
         .pluck()
         .get("wishlist-1"),
     ).toBeNull();
+    expect(
+      migrated
+        .prepare(
+          `SELECT creators, fandom_tag_ids, adult_rating, cover_path
+           FROM wishlist_items WHERE id = ?`,
+        )
+        .get("wishlist-1"),
+    ).toEqual({
+      creators: "",
+      fandom_tag_ids: "[]",
+      adult_rating: "general",
+      cover_path: null,
+    });
     expect(
       migrated
         .prepare(

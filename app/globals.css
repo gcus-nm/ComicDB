@@ -1748,6 +1748,35 @@ button:disabled {
   justify-self: start;
 }
 
+.wishlist-book-details {
+  border-top: 1px solid var(--line);
+  padding-top: 4px;
+}
+
+.wishlist-book-details > summary {
+  color: var(--accent);
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 800;
+  padding: 10px 0;
+}
+
+.wishlist-book-details[open] > summary {
+  margin-bottom: 12px;
+}
+
+.wishlist-book-details > .form-grid {
+  gap: 14px;
+}
+
+.wishlist-cover-field .cover-upload {
+  margin-bottom: 8px;
+}
+
+.wishlist-cover-field > .ghost-button {
+  margin-bottom: 10px;
+}
+
 .wishlist-progress {
   display: inline-flex;
   min-height: 34px;
@@ -1797,6 +1826,16 @@ button:disabled {
 .wishlist-item-body,
 .wishlist-edit-form {
   min-width: 0;
+}
+
+.wishlist-item-cover {
+  float: left;
+  width: 58px;
+  height: 78px;
+  margin: 0 12px 8px 0;
+  border-radius: 6px;
+  background: var(--paper-deep);
+  object-fit: cover;
 }
 
 .wishlist-item-title {
@@ -1905,9 +1944,14 @@ button:disabled {
 }
 
 .wishlist-edit-form .form-grid input,
-.wishlist-edit-form .form-grid textarea {
+.wishlist-edit-form .form-grid textarea,
+.wishlist-edit-form .form-grid select {
   min-height: 40px;
   font-size: 12px;
+}
+
+.wishlist-edit-form .taxonomy-picker {
+  font-size: 11px;
 }
 
 .wishlist-empty {

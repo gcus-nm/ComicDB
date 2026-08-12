@@ -1,10 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   BookOpen,
+  Camera,
   Check,
   CheckCircle2,
   Circle,
@@ -20,16 +21,8 @@ import {
   formatWishlistDate,
 } from "@/lib/event-dates";
 import type { WishlistItem } from "@/lib/types";
-
-type WishlistDraft = {
-  eventDay: number;
-  title: string;
-  circle: string;
-  booth: string;
-  quantity: number;
-  priceYen: string;
-  notes: string;
-};
+import { TaxonomyFields } from "@/components/taxonomy-picker";
+import type { TaxonomyTag } from "@/lib/catalog";
 
 function sortItems(items: WishlistItem[]) {
   return [...items].sort(
@@ -40,16 +33,123 @@ function sortItems(items: WishlistItem[]) {
   );
 }
 
-function draftFromItem(item: WishlistItem): WishlistDraft {
-  return {
-    eventDay: item.eventDay,
-    title: item.title,
-    circle: item.circle,
-    booth: item.booth,
-    quantity: item.quantity,
-    priceYen: item.priceYen?.toString() ?? "",
-    notes: item.notes,
-  };
+function CoverField({
+  currentUrl = null,
+  locked = false,
+}: {
+  currentUrl?: string | null;
+  locked?: boolean;
+}) {
+  const inputRef = useRef<HTMLInputElement>(null);
+  const [preview, setPreview] = useState<string | null>(currentUrl);
+  const [objectUrl, setObjectUrl] = useState<string | null>(null);
+  const [removed, setRemoved] = useState(false);
+
+  useEffect(() => () => {
+    if (objectUrl) URL.revokeObjectURL(objectUrl);
+  }, [objectUrl]);
+
+  function select(file?: File) {
+    if (objectUrl) URL.revokeObjectURL(objectUrl);
+    const nextUrl = file ? URL.createObjectURL(file) : null;
+    setObjectUrl(nextUrl);
+    setPreview(nextUrl ?? (removed ? null : currentUrl));
+    setRemoved(false);
+  }
+
+  function remove() {
+    if (inputRef.current) inputRef.current.value = "";
+    if (objectUrl) URL.revokeObjectURL(objectUrl);
+    setObjectUrl(null);
+    setPreview(null);
+    setRemoved(true);
+  }
+
+  return (
+    <div className="wishlist-cover-field span-2">
+      <label className={`cover-upload${preview ? " has-preview" : ""}`}>
+        {preview ? (
+          <>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img className="cover-upload-preview" src={preview} alt="表紙のプレビュー" />
+            <span className="cover-upload-copy">
+              <span className="cover-upload-status"><Camera size={16} />表紙を登録済み</span>
+              <span>{locked ? "変更は蔵書編集画面から行えます" : "クリックして別の画像を選択"}</span>
+            </span>
+          </>
+        ) : (
+          <>
+            <Camera size={27} />
+            <strong>表紙を撮影・選択</strong>
+            <span>JPEG・PNG・WebP・AVIF / 最大20MB</span>
+          </>
+        )}
+        <input
+          ref={inputRef}
+          name="cover"
+          type="file"
+          accept="image/jpeg,image/png,image/webp,image/avif"
+          capture="environment"
+          disabled={locked}
+          onChange={(event) => select(event.currentTarget.files?.[0])}
+        />
+      </label>
+      {currentUrl ? <input type="hidden" name="removeCover" value={removed ? "true" : "false"} /> : null}
+      {preview && !locked ? (
+        <button className="ghost-button danger" type="button" onClick={remove}>
+          <Trash2 size={16} />表紙を削除
+        </button>
+      ) : null}
+    </div>
+  );
+}
+
+function BookFields({
+  taxonomies,
+  item,
+}: {
+  taxonomies: TaxonomyTag[];
+  item?: WishlistItem;
+}) {
+  return (
+    <>
+      <CoverField currentUrl={item?.coverUrl} locked={Boolean(item?.bookId)} />
+      <label>
+        作者
+        <input name="creators" defaultValue={item?.creators} placeholder="複数は「、」区切り" />
+      </label>
+      <label>
+        成人区分
+        <select name="adultRating" defaultValue={item?.adultRating ?? "general"}>
+          <option value="general">全年齢</option>
+          <option value="r18">R18</option>
+        </select>
+      </label>
+      <TaxonomyFields
+        taxonomies={taxonomies}
+        selectedFandomIds={item?.fandomTagIds}
+        selectedCharacterIds={item?.characterTagIds}
+        selectedPairingIds={item?.pairingTagIds}
+        allowTaxonomyCreate
+      />
+      <label>
+        ジャンル
+        <input name="genres" defaultValue={item?.genres} placeholder="漫画、小説、イラスト" />
+      </label>
+      <label>
+        タグ
+        <input name="tags" defaultValue={item?.tags} placeholder="自由な分類" />
+      </label>
+      <label>
+        発行日
+        <input name="publishedOn" type="date" defaultValue={item?.publishedOn ?? ""} />
+      </label>
+      <label>
+        版・再版
+        <input name="edition" defaultValue={item?.edition} maxLength={120} placeholder="例：第2版" />
+      </label>
+    </>
+  );
 }
 
 export function WishlistManager({
@@ -57,17 +157,19 @@ export function WishlistManager({
   startsOn,
   endsOn,
   initialItems,
+  taxonomies,
 }: {
   eventId: string;
   startsOn: string;
   endsOn: string | null;
   initialItems: WishlistItem[];
+  taxonomies: TaxonomyTag[];
 }) {
   const router = useRouter();
   const formRef = useRef<HTMLFormElement>(null);
   const [items, setItems] = useState(() => sortItems(initialItems));
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [draft, setDraft] = useState<WishlistDraft | null>(null);
+  const [addFormKey, setAddFormKey] = useState(0);
   const [pending, setPending] = useState<string | null>(null);
   const [message, setMessage] = useState("");
   const eventDays = Array.from(
@@ -88,25 +190,13 @@ export function WishlistManager({
   async function addItem(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const data = new FormData(event.currentTarget);
-    const priceYen = String(data.get("priceYen") ?? "").trim();
     setPending("add");
     setMessage("");
     try {
       const response = await fetch(`/api/events/${eventId}/wishlist`, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "X-ComicDB-Request": "1",
-        },
-        body: JSON.stringify({
-          eventDay: Number(data.get("eventDay") ?? 1),
-          title: data.get("title"),
-          circle: data.get("circle"),
-          booth: data.get("booth"),
-          quantity: Number(data.get("quantity") ?? 1),
-          priceYen: priceYen ? Number(priceYen) : null,
-          notes: data.get("notes"),
-        }),
+        headers: { "X-ComicDB-Request": "1" },
+        body: data,
       });
       const body = (await response.json()) as WishlistItem & { error?: string };
       if (!response.ok) {
@@ -116,6 +206,7 @@ export function WishlistManager({
       setItems((current) => sortItems([...current, body]));
       router.refresh();
       formRef.current?.reset();
+      setAddFormKey((value) => value + 1);
       setMessage("ほしいものを追加しました。");
     } catch {
       setMessage("通信に失敗しました。時間をおいて再度お試しください。");
@@ -124,17 +215,23 @@ export function WishlistManager({
     }
   }
 
-  async function patchItem(id: string, input: Record<string, unknown>, action: string) {
+  async function patchItem(
+    id: string,
+    input: Record<string, unknown> | FormData,
+    action: string,
+  ) {
     setPending(`${action}:${id}`);
     setMessage("");
     try {
       const response = await fetch(`/api/wishlist/${id}`, {
         method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-          "X-ComicDB-Request": "1",
-        },
-        body: JSON.stringify(input),
+        headers: input instanceof FormData
+          ? { "X-ComicDB-Request": "1" }
+          : {
+              "Content-Type": "application/json",
+              "X-ComicDB-Request": "1",
+            },
+        body: input instanceof FormData ? input : JSON.stringify(input),
       });
       const body = (await response.json()) as WishlistItem & { error?: string };
       if (!response.ok) {
@@ -175,28 +272,21 @@ export function WishlistManager({
 
   function startEditing(item: WishlistItem) {
     setEditingId(item.id);
-    setDraft(draftFromItem(item));
     setMessage("");
   }
 
   function stopEditing() {
     setEditingId(null);
-    setDraft(null);
   }
 
-  async function saveEdit(item: WishlistItem) {
-    if (!draft) return;
+  async function saveEdit(
+    event: React.FormEvent<HTMLFormElement>,
+    item: WishlistItem,
+  ) {
+    event.preventDefault();
     const updated = await patchItem(
       item.id,
-      {
-        eventDay: draft.eventDay,
-        title: draft.title,
-        circle: draft.circle,
-        booth: draft.booth,
-        quantity: draft.quantity,
-        priceYen: draft.priceYen ? Number(draft.priceYen) : null,
-        notes: draft.notes,
-      },
+      new FormData(event.currentTarget),
       "save",
     );
     if (updated) {
@@ -255,6 +345,7 @@ export function WishlistManager({
       </section>
 
       <form
+        key={addFormKey}
         ref={formRef}
         className="form-section wishlist-add-form"
         onSubmit={addItem}
@@ -263,7 +354,7 @@ export function WishlistManager({
           <span>01</span>
           <div>
             <h2>ほしいものを追加</h2>
-            <p>タイトルだけでも登録できます。配置や予算は分かる範囲で入力してください。</p>
+            <p>購入後に蔵書へ引き継ぐ情報を、分かる範囲で先に入力できます。</p>
           </div>
         </div>
         <div className="form-grid">
@@ -292,7 +383,7 @@ export function WishlistManager({
           </label>
           <label>
             サークル
-            <input name="circle" maxLength={200} placeholder="例：星空書房" />
+            <input name="circle" maxLength={200} placeholder="複数は「、」区切り" />
           </label>
           <label>
             配置・スペース
@@ -318,10 +409,16 @@ export function WishlistManager({
             <textarea
               name="notes"
               rows={2}
-              maxLength={1000}
-              placeholder="新刊セット、購入制限など"
+              maxLength={5000}
+              placeholder="蔵書のメモとして引き継がれます"
             />
           </label>
+          <details className="wishlist-book-details span-2">
+            <summary>表紙・作者・分類・発行情報を入力</summary>
+            <div className="form-grid">
+              <BookFields taxonomies={taxonomies} />
+            </div>
+          </details>
         </div>
         <button
           className="primary-button large"
@@ -363,7 +460,7 @@ export function WishlistManager({
         {items.length ? (
           <div className="wishlist-items">
             {items.map((item) => {
-              const isEditing = editingId === item.id && draft;
+              const isEditing = editingId === item.id;
               return (
                 <article
                   key={item.id}
@@ -391,15 +488,16 @@ export function WishlistManager({
                   </button>
 
                   {isEditing ? (
-                    <div className="wishlist-edit-form">
+                    <form
+                      className="wishlist-edit-form"
+                      onSubmit={(event) => void saveEdit(event, item)}
+                    >
                       <div className="form-grid">
                         <label className="span-2">
                           タイトル
                           <input
-                            value={draft.title}
-                            onChange={(event) =>
-                              setDraft({ ...draft, title: event.target.value })
-                            }
+                            name="title"
+                            defaultValue={item.title}
                             required
                             maxLength={300}
                           />
@@ -407,13 +505,8 @@ export function WishlistManager({
                         <label>
                           対象日
                           <select
-                            value={draft.eventDay}
-                            onChange={(event) =>
-                              setDraft({
-                                ...draft,
-                                eventDay: Number(event.target.value),
-                              })
-                            }
+                            name="eventDay"
+                            defaultValue={item.eventDay}
                           >
                             {eventDays.map((eventDay) => (
                               <option key={eventDay} value={eventDay}>
@@ -425,33 +518,24 @@ export function WishlistManager({
                         <label>
                           サークル
                           <input
-                            value={draft.circle}
-                            onChange={(event) =>
-                              setDraft({ ...draft, circle: event.target.value })
-                            }
+                            name="circle"
+                            defaultValue={item.circle}
                             maxLength={200}
                           />
                         </label>
                         <label>
                           配置・スペース
                           <input
-                            value={draft.booth}
-                            onChange={(event) =>
-                              setDraft({ ...draft, booth: event.target.value })
-                            }
+                            name="booth"
+                            defaultValue={item.booth}
                             maxLength={100}
                           />
                         </label>
                         <label>
                           数量
                           <input
-                            value={draft.quantity}
-                            onChange={(event) =>
-                              setDraft({
-                                ...draft,
-                                quantity: Number(event.target.value),
-                              })
-                            }
+                            name="quantity"
+                            defaultValue={item.quantity}
                             type="number"
                             min={1}
                             max={99}
@@ -460,10 +544,8 @@ export function WishlistManager({
                         <label>
                           予算・単価
                           <input
-                            value={draft.priceYen}
-                            onChange={(event) =>
-                              setDraft({ ...draft, priceYen: event.target.value })
-                            }
+                            name="priceYen"
+                            defaultValue={item.priceYen ?? ""}
                             type="number"
                             min={0}
                             max={10_000_000}
@@ -472,25 +554,24 @@ export function WishlistManager({
                         <label className="span-2">
                           メモ
                           <textarea
-                            value={draft.notes}
-                            onChange={(event) =>
-                              setDraft({ ...draft, notes: event.target.value })
-                            }
+                            name="notes"
+                            defaultValue={item.notes}
                             rows={2}
-                            maxLength={1000}
+                            maxLength={5000}
                           />
                         </label>
+                        <details className="wishlist-book-details span-2">
+                          <summary>表紙・作者・分類・発行情報を編集</summary>
+                          <div className="form-grid">
+                            <BookFields taxonomies={taxonomies} item={item} />
+                          </div>
+                        </details>
                       </div>
                       <div className="wishlist-item-actions">
                         <button
-                          type="button"
+                          type="submit"
                           className="primary-button"
-                          onClick={() => void saveEdit(item)}
-                          disabled={
-                            pending !== null ||
-                            !draft.title.trim() ||
-                            draft.quantity < 1
-                          }
+                          disabled={pending !== null}
                         >
                           {pending === `save:${item.id}` ? (
                             <LoaderCircle className="spin" size={16} />
@@ -509,9 +590,19 @@ export function WishlistManager({
                           キャンセル
                         </button>
                       </div>
-                    </div>
+                    </form>
                   ) : (
                     <div className="wishlist-item-body">
+                      {item.thumbnailUrl ? (
+                        <>
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img
+                            className="wishlist-item-cover"
+                            src={item.thumbnailUrl}
+                            alt={`${item.title}の表紙`}
+                          />
+                        </>
+                      ) : null}
                       <div className="wishlist-item-title">
                         <h3>{item.title}</h3>
                         {item.purchased ? <span>購入済み</span> : null}
@@ -521,6 +612,16 @@ export function WishlistManager({
                           {formatWishlistDate(startsOn, item.eventDay)}
                         </span>
                         {item.circle ? <span>{item.circle}</span> : null}
+                        {item.creators ? <span>作者 {item.creators}</span> : null}
+                        {item.adultRating === "r18" ? <span>R18</span> : null}
+                        {item.publishedOn ? <span>発行 {item.publishedOn}</span> : null}
+                        {item.edition ? <span>{item.edition}</span> : null}
+                        {[...item.fandomTagIds, ...item.characterTagIds, ...item.pairingTagIds]
+                          .map((id) => taxonomies.find((tag) => tag.id === id)?.name)
+                          .filter((name): name is string => Boolean(name))
+                          .map((name) => <span key={name}>{name}</span>)}
+                        {item.genres ? <span>{item.genres}</span> : null}
+                        {item.tags ? <span>{item.tags}</span> : null}
                         {item.booth ? <span>配置 {item.booth}</span> : null}
                         <span>{item.quantity}点</span>
                         {item.priceYen !== null ? (
