@@ -222,6 +222,11 @@ export function BookEditForm({
         <label className="checkbox-field">
           <input name="favorite" type="checkbox" value="true" defaultChecked={book.favorite} />お気に入り
         </label>
+        <label className="span-2">
+          関連リンク
+          <textarea name="links" rows={3} defaultValue={book.links.join("\n")} />
+          <span className="field-hint">URL、または [表示名](URL) を1行に1件入力します。</span>
+        </label>
         <label className="span-2">メモ<textarea name="notes" rows={3} defaultValue={book.notes} /></label>
         <input type="hidden" name="eventId" value="" />
         <input type="hidden" name="ownershipStatus" value={book.ownershipStatus} />

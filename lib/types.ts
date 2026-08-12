@@ -13,6 +13,7 @@ export type BookSummary = {
   disposedAt: string | null;
   favorite: boolean;
   notes: string;
+  links: string[];
   coverUrl: string | null;
   thumbnailUrl: string | null;
   storageLocation: string | null;
@@ -79,6 +80,7 @@ export type WishlistItem = {
   quantity: number;
   priceYen: number | null;
   notes: string;
+  links: string[];
   purchased: boolean;
   createdAt: string;
   updatedAt: string;

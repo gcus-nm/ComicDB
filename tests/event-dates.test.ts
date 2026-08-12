@@ -65,5 +65,17 @@ describe("イベント日付", () => {
         eventDay: 0,
       }).success,
     ).toBe(false);
+    expect(
+      wishlistItemInputSchema.parse({
+        title: "新刊",
+        links: "https://example.com/one\n\nhttps://example.com/two",
+      }).links,
+    ).toEqual(["https://example.com/one", "https://example.com/two"]);
+    expect(
+      wishlistItemInputSchema.safeParse({
+        title: "新刊",
+        links: "javascript:alert(1)",
+      }).success,
+    ).toBe(false);
   });
 });

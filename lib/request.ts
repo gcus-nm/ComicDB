@@ -26,6 +26,7 @@ export function formDataObject(formData: FormData) {
     ownershipStatus: text("ownershipStatus") || "owned",
     favorite: text("favorite") === "true" || text("favorite") === "on",
     notes: text("notes"),
+    links: text("links"),
     eventId: text("eventId") || null,
     purchasedOn: text("purchasedOn"),
     priceYen: text("priceYen") || null,
@@ -58,5 +59,6 @@ export function wishlistFormDataObject(formData: FormData) {
     quantity: text("quantity") || "1",
     priceYen: text("priceYen") || null,
     notes: text("notes"),
+    links: text("links"),
   };
 }

@@ -23,6 +23,7 @@ import {
 import type { WishlistItem } from "@/lib/types";
 import { TaxonomyFields } from "@/components/taxonomy-picker";
 import type { TaxonomyTag } from "@/lib/catalog";
+import { ExternalLinks } from "@/components/external-links";
 
 function sortItems(items: WishlistItem[]) {
   return [...items].sort(
@@ -405,6 +406,15 @@ export function WishlistManager({
             />
           </label>
           <label className="span-2">
+            関連リンク
+            <textarea
+              name="links"
+              rows={3}
+              placeholder={"[告知ポスト](https://twitter.com/...)\n[Webカタログ](https://example.com/catalog/...)"}
+            />
+            <span className="field-hint">URL、または [表示名](URL) を1行に1件入力します。</span>
+          </label>
+          <label className="span-2">
             メモ
             <textarea
               name="notes"
@@ -552,6 +562,15 @@ export function WishlistManager({
                           />
                         </label>
                         <label className="span-2">
+                          関連リンク
+                          <textarea
+                            name="links"
+                            defaultValue={item.links.join("\n")}
+                            rows={3}
+                          />
+                          <span className="field-hint">URL、または [表示名](URL) を1行に1件入力します。</span>
+                        </label>
+                        <label className="span-2">
                           メモ
                           <textarea
                             name="notes"
@@ -637,6 +656,7 @@ export function WishlistManager({
                           </Link>
                         ) : null}
                       </div>
+                      <ExternalLinks links={item.links} />
                       {item.notes ? <p>{item.notes}</p> : null}
                     </div>
                   )}

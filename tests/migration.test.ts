@@ -19,7 +19,7 @@ afterEach(() => {
 });
 
 describe("DBマイグレーション", () => {
-  it("v6のリスト対象日を引き継ぎ、蔵書詳細と自動化API記録を追加してv10へ移行する", () => {
+  it("v6のデータを引き継ぎ、関連リンク列まで追加してv11へ移行する", () => {
     tempDir = mkdtempSync(path.join(os.tmpdir(), "comicdb-migration-"));
     const dataDir = path.join(tempDir, "data");
     const backupDir = path.join(tempDir, "backups");
@@ -109,13 +109,25 @@ describe("DBマイグレーション", () => {
     });
 
     const migrated = new Database(databasePath, { readonly: true });
-    expect(migrated.pragma("user_version", { simple: true })).toBe(10);
+    expect(migrated.pragma("user_version", { simple: true })).toBe(11);
     expect(
       migrated
         .prepare("SELECT event_day FROM wishlist_items WHERE id = ?")
         .pluck()
         .get("wishlist-1"),
     ).toBe(2);
+    expect(
+      migrated
+        .prepare("SELECT links FROM books WHERE id = ?")
+        .pluck()
+        .get("book-1"),
+    ).toBe("[]");
+    expect(
+      migrated
+        .prepare("SELECT links FROM wishlist_items WHERE id = ?")
+        .pluck()
+        .get("wishlist-1"),
+    ).toBe("[]");
     expect(
       migrated
         .prepare(

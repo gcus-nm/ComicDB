@@ -6,7 +6,7 @@ import * as schema from "./schema";
 import { INITIAL_SCHEMA_SQL } from "./schema-sql";
 
 type ComicDatabase = ReturnType<typeof createDatabase>;
-const CURRENT_SCHEMA_VERSION = 10;
+const CURRENT_SCHEMA_VERSION = 11;
 
 declare global {
   var __comicdb: ComicDatabase | undefined;

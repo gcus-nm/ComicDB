@@ -166,6 +166,10 @@ components:
         ownershipStatus: { type: string, enum: [owned, disposed], default: owned }
         favorite: { type: boolean, default: false }
         notes: { type: string, maxLength: 5000 }
+        links:
+          oneOf:
+            - { type: string, description: 1行に1件のHTTP/HTTPS URLまたはMarkdownリンク }
+            - { type: array, maxItems: 50, items: { type: string, description: HTTP/HTTPS URLまたは `[表示名](URL)` } }
         eventId: { type: [string, 'null'] }
         purchasedOn: { type: string }
         priceYen: { type: [integer, 'null'], minimum: 0 }

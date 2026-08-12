@@ -12,6 +12,7 @@ import {
 import { BookCover } from "@/components/book-cover";
 import { BookEditForm } from "@/components/book-edit-form";
 import { BookLifecycleActions } from "@/components/book-lifecycle-actions";
+import { ExternalLinks } from "@/components/external-links";
 import { getBook, listTaxonomyTags } from "@/lib/catalog";
 
 export const metadata = { title: "蔵書詳細" };
@@ -57,6 +58,7 @@ export default async function BookDetailPage({
               {book.tags.map((tag) => <span key={`${tag.type}-${tag.name}`}>{tag.name}</span>)}
             </div>
           ) : null}
+          <ExternalLinks links={book.links} />
           {book.notes ? <p className="detail-notes">{book.notes}</p> : null}
         </div>
       </section>

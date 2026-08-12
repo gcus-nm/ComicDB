@@ -70,6 +70,7 @@ describe("蔵書管理", () => {
       ownershipStatus: "owned",
       favorite: false,
       notes: "",
+      links: ["https://example.com/books/summer"],
       eventId: event.id,
       purchasedOn: "",
       priceYen: 500,
@@ -83,6 +84,7 @@ describe("蔵書管理", () => {
     expect(listBooks({ q: "主人公" }).books[0]?.id).toBe(book.id);
     expect(listBooks({ q: "新刊" }).books[0]?.id).toBe(book.id);
     expect(findDuplicateCandidates("夏の記憶", "星空書房")[0]?.id).toBe(book.id);
+    expect(getBook(book.id)?.links).toEqual(["https://example.com/books/summer"]);
     expect(findDuplicateCandidates("", "")).toEqual([]);
     expect(addAcquisition(book.id, { eventId: event.id, quantity: 2 })?.ownedCount).toBe(3);
 
@@ -183,6 +185,7 @@ describe("蔵書管理", () => {
       quantity: 2,
       priceYen: 1000,
       notes: "会場限定",
+      links: "[告知ポスト](https://twitter.com/example/status/1)\n\nhttps://example.com/catalog",
       purchased: false,
     }, {
       coverPath: "media/covers/wishlist.webp",
@@ -226,6 +229,10 @@ describe("蔵書管理", () => {
       booth: "東A-01a",
       priceYen: 1000,
       notes: "会場限定",
+      links: [
+        "[告知ポスト](https://twitter.com/example/status/1)",
+        "https://example.com/catalog",
+      ],
     });
     expect(updated?.bookId).toEqual(expect.any(String));
     const registeredBook = getBook(updated!.bookId!);
@@ -237,6 +244,10 @@ describe("蔵書管理", () => {
       publishedOn: "2026-08-10",
       edition: "初版",
       notes: "会場限定",
+      links: [
+        "[告知ポスト](https://twitter.com/example/status/1)",
+        "https://example.com/catalog",
+      ],
       coverUrl: "/api/media/media/covers/wishlist.webp",
       thumbnailUrl: "/api/media/media/thumbs/wishlist.webp",
       tags: expect.arrayContaining([

@@ -37,6 +37,7 @@ type BookRow = {
   disposed_at: string | null;
   favorite: number;
   notes: string;
+  links: string;
   cover_path: string | null;
   thumbnail_path: string | null;
   storage_location_id?: string | null;
@@ -69,6 +70,7 @@ function toSummary(row: BookRow): BookSummary {
     disposedAt: row.disposed_at,
     favorite: Boolean(row.favorite),
     notes: row.notes,
+    links: parseJson<string[]>(row.links, []),
     coverUrl: row.cover_path ? `/api/media/${row.cover_path}` : null,
     thumbnailUrl: row.thumbnail_path ? `/api/media/${row.thumbnail_path}` : null,
     storageLocation: row.storage_location,
@@ -92,6 +94,7 @@ const BOOK_SELECT = `
     b.disposed_at,
     b.favorite,
     b.notes,
+    b.links,
     b.cover_path,
     b.thumbnail_path,
     b.storage_location_id,
@@ -493,8 +496,8 @@ export function createBook(
       `INSERT INTO books (
         id, title, normalized_title, adult_rating, published_on, edition,
         storage_location_id, read_status, ownership_status, disposed_at,
-        favorite, notes, cover_path, thumbnail_path, created_at, updated_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        favorite, notes, links, cover_path, thumbnail_path, created_at, updated_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     ).run(
       id,
       input.title,
@@ -508,6 +511,7 @@ export function createBook(
       input.ownershipStatus === "disposed" ? now : null,
       input.favorite ? 1 : 0,
       input.notes,
+      JSON.stringify(input.links ?? []),
       media?.coverPath ?? null,
       media?.thumbnailPath ?? null,
       now,
@@ -551,12 +555,13 @@ export function updateBook(
     media === undefined
       ? []
       : [media?.coverPath ?? null, media?.thumbnailPath ?? null];
+  const links = input.links ?? current.links;
   const transaction = db.transaction(() => {
     db.prepare(
       `UPDATE books SET
         title = ?, normalized_title = ?, adult_rating = ?, published_on = ?,
         edition = ?, storage_location_id = ?, read_status = ?,
-        ownership_status = ?, disposed_at = ?, favorite = ?, notes = ?
+        ownership_status = ?, disposed_at = ?, favorite = ?, notes = ?, links = ?
         ${mediaAssignment},
         updated_at = ?
        WHERE id = ?`,
@@ -574,6 +579,7 @@ export function updateBook(
         : null,
       input.favorite ? 1 : 0,
       input.notes,
+      JSON.stringify(links),
       ...mediaValues,
       now,
       id,
@@ -879,6 +885,7 @@ type WishlistItemRow = {
   quantity: number;
   price_yen: number | null;
   notes: string;
+  links: string;
   purchased: number;
   created_at: string;
   updated_at: string;
@@ -907,6 +914,7 @@ function toWishlistItem(row: WishlistItemRow): WishlistItem {
     quantity: row.quantity,
     priceYen: row.price_yen,
     notes: row.notes,
+    links: parseJson<string[]>(row.links, []),
     purchased: Boolean(row.purchased),
     createdAt: row.created_at,
     updatedAt: row.updated_at,
@@ -988,8 +996,8 @@ export function createWishlistItem(
         id, event_id, event_day, title, circle, creators, fandom_tag_ids,
         character_tag_ids, pairing_tag_ids, genres, tags, adult_rating,
         published_on, edition, cover_path, thumbnail_path, booth, quantity,
-        price_yen, notes, purchased, created_at, updated_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        price_yen, notes, links, purchased, created_at, updated_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     ).run(
       id,
       eventId,
@@ -1011,6 +1019,7 @@ export function createWishlistItem(
       input.quantity,
       input.priceYen ?? null,
       input.notes,
+      JSON.stringify(input.links ?? []),
       0,
       now,
       now,
@@ -1069,6 +1078,7 @@ export function updateWishlistItem(
   const priceYen =
     input.priceYen === undefined ? current.priceYen : input.priceYen;
   const notes = input.notes ?? current.notes;
+  const links = input.links ?? current.links;
   const purchased = input.purchased ?? current.purchased;
   const db = getDb().sqlite;
 
@@ -1105,6 +1115,7 @@ export function updateWishlistItem(
         ownershipStatus: "owned",
         favorite: false,
         notes,
+        links,
         eventId: current.eventId,
         purchasedOn:
           eventDateForDay(event.starts_on, eventDay) ?? event.starts_on,
@@ -1121,7 +1132,7 @@ export function updateWishlistItem(
         fandom_tag_ids = ?, character_tag_ids = ?, pairing_tag_ids = ?,
         genres = ?, tags = ?, adult_rating = ?, published_on = ?, edition = ?,
         cover_path = ?, thumbnail_path = ?, booth = ?, quantity = ?,
-        price_yen = ?, notes = ?, purchased = ?, updated_at = ?
+        price_yen = ?, notes = ?, links = ?, purchased = ?, updated_at = ?
        WHERE id = ?`,
     )
     .run(
@@ -1144,6 +1155,7 @@ export function updateWishlistItem(
       quantity,
       priceYen,
       notes,
+      JSON.stringify(links),
       purchased ? 1 : 0,
       new Date().toISOString(),
       id,
