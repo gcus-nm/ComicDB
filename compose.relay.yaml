@@ -1,0 +1,11 @@
+services:
+  comicdb:
+    networks:
+      relay-ingress:
+        aliases:
+          - comicdb
+
+networks:
+  relay-ingress:
+    external: true
+    name: onprem-relay-ingress

@@ -61,6 +61,8 @@ Google連携を使わない場合、`GOOGLE_` で始まる環境変数は空の�
 
 ### 3. ビルドと起動
 
+通常の起動ではRelay用外部ネットワークを必要としません。
+
 ```powershell
 docker compose up -d --build
 docker compose ps
@@ -84,6 +86,10 @@ docker compose ps
 `.env` の `APP_ORIGIN` を公開URLへ設定してコンテナーを再作成した後、OCI Relay
 ControlへWeb経路を登録します。Composeのホスト公開は `127.0.0.1` のまま維持し、
 Relayからは共有Dockerネットワーク上の `comicdb:8080` へ接続します。
+Relay公開時だけ`compose.relay.yaml`を追加指定してください。Relay Controlが管理する
+外部ネットワーク`onprem-relay-ingress`が存在しない環境では、この公開用構成は起動しません。
+Relay公開中の環境では、以降の`docker compose`操作でも常に
+`-f compose.yaml -f compose.relay.yaml`を指定し、共有ネットワーク接続を維持してください。
 
 公開経路にはComicDB自身のログインより手前で専用Basic認証を適用します。パスワードは
 Relay Controlが自動生成し、Git管理外の `.env.basic-auth` へ一度だけ保存します。
@@ -92,9 +98,9 @@ Relay Control管理画面の認証情報は流用しません。
 公開後は少なくとも次を確認します。
 
 ```powershell
-docker compose config --quiet
-docker compose up -d --build --force-recreate
-docker compose ps
+docker compose -f compose.yaml -f compose.relay.yaml config --quiet
+docker compose -f compose.yaml -f compose.relay.yaml up -d --build --force-recreate
+docker compose -f compose.yaml -f compose.relay.yaml ps
 curl.exe --head https://comicdb.oci.gcusnm.mydns.jp/api/health
 ```
 
@@ -310,6 +316,14 @@ docker compose up -d
 docker compose ps
 ```
 
+Relay公開中の環境では、共有ネットワーク接続を維持するため公開用構成も指定します。
+
+```powershell
+docker compose -f compose.yaml -f compose.relay.yaml build --pull
+docker compose -f compose.yaml -f compose.relay.yaml up -d
+docker compose -f compose.yaml -f compose.relay.yaml ps
+```
+
 ## 開発
 
 Node.js 22以降とnpmを使用します。
@@ -327,6 +341,7 @@ npm test
 npm run lint
 npm run build
 docker compose config
+docker compose -f compose.yaml -f compose.relay.yaml config
 ```
 
 ローカルデータは `data/`、バックアップは `backups/` に作成され、Git管理対象外です。
