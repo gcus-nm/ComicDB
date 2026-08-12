@@ -64,6 +64,17 @@ export type WishlistItem = {
   eventDay: number;
   title: string;
   circle: string;
+  creators: string;
+  fandomTagIds: string[];
+  characterTagIds: string[];
+  pairingTagIds: string[];
+  genres: string;
+  tags: string;
+  adultRating: AdultRating;
+  publishedOn: string | null;
+  edition: string;
+  coverUrl: string | null;
+  thumbnailUrl: string | null;
   booth: string;
   quantity: number;
   priceYen: number | null;

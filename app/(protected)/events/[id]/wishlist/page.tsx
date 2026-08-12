@@ -8,7 +8,7 @@ import {
   Pencil,
 } from "lucide-react";
 import { WishlistManager } from "@/components/wishlist-manager";
-import { getEvent, listWishlistItems } from "@/lib/catalog";
+import { getEvent, listTaxonomyTags, listWishlistItems } from "@/lib/catalog";
 import { formatEventDateRange } from "@/lib/event-dates";
 
 export const metadata = { title: "イベントのほしいものリスト" };
@@ -22,6 +22,7 @@ export default async function EventWishlistPage({
   const event = getEvent(id);
   if (!event) notFound();
   const items = listWishlistItems(id);
+  const taxonomies = listTaxonomyTags();
 
   return (
     <div className="page-stack narrow-page wishlist-page">
@@ -69,6 +70,7 @@ export default async function EventWishlistPage({
         startsOn={event.starts_on}
         endsOn={event.ends_on}
         initialItems={items}
+        taxonomies={taxonomies}
       />
     </div>
   );

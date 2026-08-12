@@ -33,3 +33,30 @@ export function formDataObject(formData: FormData) {
     acquisitionNotes: text("acquisitionNotes"),
   };
 }
+
+export function wishlistFormDataObject(formData: FormData) {
+  const text = (key: string) => {
+    const value = formData.get(key);
+    return typeof value === "string" ? value : "";
+  };
+  const texts = (key: string) =>
+    formData.getAll(key).filter((value): value is string => typeof value === "string");
+  return {
+    eventDay: text("eventDay") || "1",
+    title: text("title"),
+    circle: text("circle"),
+    creators: text("creators"),
+    fandomTagIds: texts("fandomTagIds"),
+    characterTagIds: texts("characterTagIds"),
+    pairingTagIds: texts("pairingTagIds"),
+    genres: text("genres"),
+    tags: text("tags"),
+    adultRating: text("adultRating") || "general",
+    publishedOn: text("publishedOn"),
+    edition: text("edition"),
+    booth: text("booth"),
+    quantity: text("quantity") || "1",
+    priceYen: text("priceYen") || null,
+    notes: text("notes"),
+  };
+}
