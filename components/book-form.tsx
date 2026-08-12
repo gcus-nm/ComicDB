@@ -405,6 +405,15 @@ export function BookForm({
             お気に入りにする
           </label>
           <label className="span-2">
+            関連リンク
+            <textarea
+              name="links"
+              rows={3}
+              placeholder={"[告知ポスト](https://twitter.com/...)\n[Webカタログ](https://example.com/catalog/...)"}
+            />
+            <span className="field-hint">URL、または [表示名](URL) を1行に1件入力します。</span>
+          </label>
+          <label className="span-2">
             メモ
             <textarea name="notes" rows={3} placeholder="感想、探すときの手がかりなど" />
           </label>

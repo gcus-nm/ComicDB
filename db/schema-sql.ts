@@ -47,6 +47,7 @@ CREATE TABLE IF NOT EXISTS books (
   disposed_at TEXT,
   favorite INTEGER NOT NULL DEFAULT 0,
   notes TEXT NOT NULL DEFAULT '',
+  links TEXT NOT NULL DEFAULT '[]',
   cover_path TEXT,
   thumbnail_path TEXT,
   created_at TEXT NOT NULL,
@@ -137,6 +138,7 @@ CREATE TABLE IF NOT EXISTS wishlist_items (
   quantity INTEGER NOT NULL DEFAULT 1 CHECK(quantity > 0),
   price_yen INTEGER CHECK(price_yen IS NULL OR price_yen >= 0),
   notes TEXT NOT NULL DEFAULT '',
+  links TEXT NOT NULL DEFAULT '[]',
   purchased INTEGER NOT NULL DEFAULT 0 CHECK(purchased IN (0, 1)),
   created_at TEXT NOT NULL,
   updated_at TEXT NOT NULL

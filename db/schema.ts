@@ -78,6 +78,7 @@ export const books = sqliteTable(
     disposedAt: text("disposed_at"),
     favorite: integer("favorite", { mode: "boolean" }).notNull().default(false),
     notes: text("notes").notNull().default(""),
+    links: text("links").notNull().default("[]"),
     coverPath: text("cover_path"),
     thumbnailPath: text("thumbnail_path"),
     createdAt: text("created_at").notNull(),
@@ -220,6 +221,7 @@ export const wishlistItems = sqliteTable(
     quantity: integer("quantity").notNull().default(1),
     priceYen: integer("price_yen"),
     notes: text("notes").notNull().default(""),
+    links: text("links").notNull().default("[]"),
     purchased: integer("purchased", { mode: "boolean" })
       .notNull()
       .default(false),

@@ -3,11 +3,36 @@ import {
   eventDayForDate,
   isIsoDate,
 } from "./event-dates";
+import { parseExternalLink } from "./links";
 
 const optionalDate = z
   .string()
   .trim()
   .refine((value) => !value || /^\d{4}-\d{2}-\d{2}$/u.test(value), "日付形式が不正です。");
+
+const linkEntry = z
+  .string()
+  .trim()
+  .max(2252, "リンクの表示名とURLが長すぎます。")
+  .refine(
+    (value) => parseExternalLink(value) !== null,
+    "リンクはURL、または[表示名](URL)を1行に1件入力してください。URLにはhttp://かhttps://を使用できます。",
+  );
+
+const linksInput = z.preprocess(
+  (value) => {
+    if (typeof value === "string") {
+      return value.split(/\r?\n/u).map((item) => item.trim()).filter(Boolean);
+    }
+    if (Array.isArray(value)) {
+      return value.flatMap((item) =>
+        typeof item === "string" ? item.split(/\r?\n/u) : item,
+      ).map((item) => typeof item === "string" ? item.trim() : item).filter(Boolean);
+    }
+    return value;
+  },
+  z.array(linkEntry).max(50, "リンクは50件まで登録できます。"),
+).optional();
 
 export const bookInputSchema = z.object({
   title: z.string().trim().min(1, "タイトルは必須です。").max(300),
@@ -30,6 +55,7 @@ export const bookInputSchema = z.object({
   ownershipStatus: z.enum(["owned", "disposed"]).default("owned"),
   favorite: z.coerce.boolean().default(false),
   notes: z.string().trim().max(5000).optional().default(""),
+  links: linksInput,
   eventId: z.string().trim().optional().nullable(),
   purchasedOn: optionalDate.optional().default(""),
   priceYen: z.coerce.number().int().min(0).max(10_000_000).optional().nullable(),
@@ -103,6 +129,7 @@ export const wishlistItemInputSchema = z.object({
   quantity: z.coerce.number().int().min(1).max(99).default(1),
   priceYen: z.coerce.number().int().min(0).max(10_000_000).nullable().optional(),
   notes: z.string().trim().max(5000).optional().default(""),
+  links: linksInput,
   purchased: z.boolean().optional().default(false),
 });
 
@@ -123,5 +150,6 @@ export const wishlistItemUpdateSchema = z.object({
   quantity: z.coerce.number().int().min(1).max(99).optional(),
   priceYen: z.coerce.number().int().min(0).max(10_000_000).nullable().optional(),
   notes: z.string().trim().max(5000).optional(),
+  links: linksInput,
   purchased: z.boolean().optional(),
 });
