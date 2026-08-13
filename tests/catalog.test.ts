@@ -21,11 +21,14 @@ import {
   listTaxonomyTags,
   listWishlistItems,
   setBookOwnershipStatus,
+  updateAcquisition,
+  updateBook,
   updateEvent,
   updateWishlistItem,
 } from "@/lib/catalog";
 import { exportCsv, importCsv, preflightCsv } from "@/lib/csv";
 import {
+  bookInputSchema,
   eventInputSchema,
   wishlistItemInputSchema,
   wishlistItemUpdateSchema,
@@ -97,6 +100,85 @@ describe("蔵書管理", () => {
     expect(deleteBook(book.id)).toEqual([]);
     expect(getBook(book.id)).toBeNull();
     expect(listBooks({ q: "夏の記憶", ownershipStatus: "all" }).total).toBe(0);
+  });
+
+  it("発行イベントと購入イベントを分け、登録後に購入情報を編集できる", () => {
+    const publishedEvent = createEvent({
+      name: "初頒布イベント",
+      startsOn: "2026-08-10",
+      endsOn: "",
+      venue: "東京",
+      notes: "",
+    })!;
+    const purchaseEvent = createEvent({
+      name: "購入イベント",
+      startsOn: "2026-08-15",
+      endsOn: "",
+      venue: "大阪",
+      notes: "",
+    })!;
+    const changedPurchaseEvent = createEvent({
+      name: "変更後の購入イベント",
+      startsOn: "2026-08-20",
+      endsOn: "",
+      venue: "名古屋",
+      notes: "",
+    })!;
+    const book = createBook(bookInputSchema.parse({
+      title: "イベントを分ける本",
+      publishedEventId: publishedEvent.id,
+      eventId: purchaseEvent.id,
+      purchasedOn: "2026-08-16",
+      priceYen: 700,
+      quantity: 2,
+      acquisitionNotes: "購入時メモ",
+    }));
+
+    expect(getBook(book.id)).toMatchObject({
+      publishedEventId: publishedEvent.id,
+      publishedEventName: "初頒布イベント",
+      acquisitions: [
+        {
+          eventId: purchaseEvent.id,
+          eventName: "購入イベント",
+          purchasedOn: "2026-08-16",
+          priceYen: 700,
+          quantity: 2,
+          notes: "購入時メモ",
+        },
+      ],
+    });
+
+    const acquisitionId = book.acquisitions[0]!.id;
+    const updated = updateAcquisition(book.id, acquisitionId, {
+      eventId: changedPurchaseEvent.id,
+      purchasedOn: "2026-08-21",
+      priceYen: 800,
+      quantity: 3,
+      notes: "変更後メモ",
+    });
+    expect(updated).toMatchObject({
+      ownedCount: 3,
+      acquisitions: [
+        {
+          id: acquisitionId,
+          eventId: changedPurchaseEvent.id,
+          eventName: "変更後の購入イベント",
+          purchasedOn: "2026-08-21",
+          priceYen: 800,
+          quantity: 3,
+          notes: "変更後メモ",
+        },
+      ],
+    });
+
+    expect(updateBook(book.id, bookInputSchema.parse({
+      title: book.title,
+      publishedEventId: null,
+    }))).toMatchObject({
+      publishedEventId: null,
+      publishedEventName: null,
+    });
   });
 
   it("CSVを出力して再取込できる", () => {

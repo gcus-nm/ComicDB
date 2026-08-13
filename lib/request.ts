@@ -19,6 +19,7 @@ export function formDataObject(formData: FormData) {
     tags: text("tags"),
     adultRating: text("adultRating") || "general",
     publishedOn: text("publishedOn"),
+    publishedEventId: text("publishedEventId") || null,
     edition: text("edition"),
     storageLocationId: text("storageLocationId") || null,
     storageLocation: text("storageLocation"),

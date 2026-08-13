@@ -161,6 +161,7 @@ components:
         tags: { oneOf: [ { type: string }, { type: array, items: { type: string } } ] }
         adultRating: { type: string, enum: [general, r18], default: general }
         publishedOn: { type: string }
+        publishedEventId: { type: [string, 'null'] }
         edition: { type: string, maxLength: 120 }
         readStatus: { type: string, enum: [unread, reading, read], default: unread }
         ownershipStatus: { type: string, enum: [owned, disposed], default: owned }

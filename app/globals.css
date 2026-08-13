@@ -2245,6 +2245,31 @@ button:disabled {
   font-size: 10px;
 }
 
+.acquisition-edit-panel {
+  margin-top: 10px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: rgba(255, 253, 249, 0.72);
+}
+
+.acquisition-edit-panel summary {
+  color: var(--accent);
+  cursor: pointer;
+  font-size: 10px;
+  font-weight: 700;
+  list-style: none;
+  padding: 9px 11px;
+}
+
+.acquisition-edit-form {
+  border-top: 1px solid var(--line);
+  padding: 13px;
+}
+
+.acquisition-edit-form .secondary-button {
+  justify-self: end;
+}
+
 .settings-page {
   width: min(860px, 100%);
 }

@@ -6,7 +6,7 @@ import { listEvents, listTaxonomyTags } from "@/lib/catalog";
 export const metadata = { title: "蔵書を登録" };
 
 export default function NewBookPage() {
-  const events = listEvents();
+  const events = listEvents(2_000);
   const taxonomies = listTaxonomyTags();
   return (
     <div className="page-stack narrow-page">

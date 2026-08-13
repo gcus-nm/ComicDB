@@ -17,9 +17,11 @@ import { TaxonomyFields } from "@/components/taxonomy-picker";
 export function BookEditForm({
   book,
   taxonomies,
+  events,
 }: {
   book: BookDetail;
   taxonomies: TaxonomyTag[];
+  events: Array<{ id: string; name: string; startsOn: string }>;
 }) {
   const router = useRouter();
   const coverInputRef = useRef<HTMLInputElement>(null);
@@ -74,8 +76,6 @@ export function BookEditForm({
     setPending(true);
     setMessage("");
     const data = new FormData(event.currentTarget);
-    data.set("priceYen", "");
-    data.set("quantity", "1");
     data.set("removeCover", removeCover ? "true" : "false");
     const response = await fetch(`/api/books/${book.id}`, {
       method: "PATCH",
@@ -203,12 +203,23 @@ export function BookEditForm({
           selectedFandomIds={book.tags.filter((tag) => tag.type === "fandom").map((tag) => tag.id)}
           selectedCharacterIds={book.tags.filter((tag) => tag.type === "character").map((tag) => tag.id)}
           selectedPairingIds={book.tags.filter((tag) => tag.type === "pairing").map((tag) => tag.id)}
+          allowTaxonomyCreate
         />
         <label>ジャンル<input name="genres" defaultValue={tags("genre")} /></label>
         <label>タグ<input name="tags" defaultValue={tags("custom")} /></label>
         <label>成人区分
           <select name="adultRating" defaultValue={book.adultRating}>
             <option value="general">全年齢</option><option value="r18">R18</option>
+          </select>
+        </label>
+        <label>発行イベント
+          <select name="publishedEventId" defaultValue={book.publishedEventId ?? ""}>
+            <option value="">イベント未指定</option>
+            {events.map((event) => (
+              <option key={event.id} value={event.id}>
+                {event.startsOn}　{event.name}
+              </option>
+            ))}
           </select>
         </label>
         <label>発行日<input name="publishedOn" type="date" defaultValue={book.publishedOn ?? ""} /></label>
@@ -228,10 +239,7 @@ export function BookEditForm({
           <span className="field-hint">URL、または [表示名](URL) を1行に1件入力します。</span>
         </label>
         <label className="span-2">メモ<textarea name="notes" rows={3} defaultValue={book.notes} /></label>
-        <input type="hidden" name="eventId" value="" />
         <input type="hidden" name="ownershipStatus" value={book.ownershipStatus} />
-        <input type="hidden" name="purchasedOn" value="" />
-        <input type="hidden" name="acquisitionNotes" value="" />
         {message ? <p className="span-2 inline-message">{message}</p> : null}
         <button className="primary-button span-2" type="submit" disabled={pending}>
           {pending ? <LoaderCircle className="spin" size={18} /> : <Save size={18} />}変更を保存

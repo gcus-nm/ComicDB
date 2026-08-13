@@ -48,6 +48,7 @@ export const bookInputSchema = z.object({
   tags: z.union([z.string(), z.array(z.string())]).optional(),
   adultRating: z.enum(["general", "r18"]).default("general"),
   publishedOn: optionalDate.optional().default(""),
+  publishedEventId: z.string().trim().optional().nullable(),
   edition: z.string().trim().max(120).optional().default(""),
   storageLocationId: z.string().trim().optional().nullable(),
   storageLocation: z.string().trim().max(120).optional(),

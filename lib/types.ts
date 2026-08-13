@@ -33,6 +33,8 @@ export type BookSummary = {
 
 export type BookDetail = BookSummary & {
   publishedOn: string | null;
+  publishedEventId: string | null;
+  publishedEventName: string | null;
   storageLocationId: string | null;
   acquisitions: Array<{
     id: string;

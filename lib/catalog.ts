@@ -49,6 +49,8 @@ type BookRow = {
   latest_event: string | null;
   updated_at: string;
   published_on?: string | null;
+  published_event_id?: string | null;
+  published_event_name?: string | null;
 };
 
 function parseJson<T>(value: string, fallback: T): T {
@@ -99,6 +101,8 @@ const BOOK_SELECT = `
     b.thumbnail_path,
     b.storage_location_id,
     b.published_on,
+    b.published_event_id,
+    pe.name AS published_event_name,
     sl.name AS storage_location,
     COALESCE((
       SELECT json_group_array(name) FROM (
@@ -147,6 +151,7 @@ const BOOK_SELECT = `
     b.updated_at
   FROM books b
   LEFT JOIN storage_locations sl ON sl.id = b.storage_location_id
+  LEFT JOIN events pe ON pe.id = b.published_event_id
 `;
 
 export type BookFilters = {
@@ -272,6 +277,8 @@ export function getBook(id: string): BookDetail | null {
   return {
     ...toSummary(row),
     publishedOn: row.published_on ?? null,
+    publishedEventId: row.published_event_id ?? null,
+    publishedEventName: row.published_event_name ?? null,
     storageLocationId: row.storage_location_id ?? null,
     acquisitions: acquisitions.map((item) => ({
       id: item.id,
@@ -494,16 +501,18 @@ export function createBook(
   const transaction = db.transaction(() => {
     db.prepare(
       `INSERT INTO books (
-        id, title, normalized_title, adult_rating, published_on, edition,
+        id, title, normalized_title, adult_rating, published_on,
+        published_event_id, edition,
         storage_location_id, read_status, ownership_status, disposed_at,
         favorite, notes, links, cover_path, thumbnail_path, created_at, updated_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     ).run(
       id,
       input.title,
       normalizeText(input.title),
       input.adultRating,
       input.publishedOn || null,
+      input.publishedEventId || null,
       input.edition,
       storageLocationId || null,
       input.readStatus,
@@ -560,7 +569,7 @@ export function updateBook(
     db.prepare(
       `UPDATE books SET
         title = ?, normalized_title = ?, adult_rating = ?, published_on = ?,
-        edition = ?, storage_location_id = ?, read_status = ?,
+        published_event_id = ?, edition = ?, storage_location_id = ?, read_status = ?,
         ownership_status = ?, disposed_at = ?, favorite = ?, notes = ?, links = ?
         ${mediaAssignment},
         updated_at = ?
@@ -570,6 +579,7 @@ export function updateBook(
       normalizeText(input.title),
       input.adultRating,
       input.publishedOn || null,
+      input.publishedEventId || null,
       input.edition,
       storageLocationId || null,
       input.readStatus,
@@ -654,6 +664,39 @@ export function addAcquisition(
      SET ownership_status = 'owned', disposed_at = NULL, updated_at = ?
      WHERE id = ?`,
   ).run(new Date().toISOString(), bookId);
+  return getBook(bookId);
+}
+
+export function updateAcquisition(
+  bookId: string,
+  acquisitionId: string,
+  input: {
+    eventId?: string | null;
+    purchasedOn?: string;
+    priceYen?: number | null;
+    quantity?: number;
+    notes?: string;
+  },
+) {
+  const db = getDb().sqlite;
+  const now = new Date().toISOString();
+  const result = db
+    .prepare(
+      `UPDATE acquisitions SET
+        event_id = ?, purchased_on = ?, price_yen = ?, quantity = ?, notes = ?
+       WHERE id = ? AND book_id = ?`,
+    )
+    .run(
+      input.eventId || null,
+      input.purchasedOn || null,
+      input.priceYen ?? null,
+      input.quantity ?? 1,
+      input.notes ?? "",
+      acquisitionId,
+      bookId,
+    );
+  if (!result.changes) return null;
+  db.prepare("UPDATE books SET updated_at = ? WHERE id = ?").run(now, bookId);
   return getBook(bookId);
 }
 

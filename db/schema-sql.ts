@@ -40,6 +40,7 @@ CREATE TABLE IF NOT EXISTS books (
   normalized_title TEXT NOT NULL,
   adult_rating TEXT NOT NULL DEFAULT 'general' CHECK(adult_rating IN ('general', 'r18')),
   published_on TEXT,
+  published_event_id TEXT REFERENCES events(id) ON DELETE SET NULL,
   edition TEXT NOT NULL DEFAULT '',
   storage_location_id TEXT REFERENCES storage_locations(id) ON DELETE SET NULL,
   read_status TEXT NOT NULL DEFAULT 'unread' CHECK(read_status IN ('unread', 'reading', 'read')),
@@ -54,6 +55,7 @@ CREATE TABLE IF NOT EXISTS books (
   updated_at TEXT NOT NULL
 );
 CREATE INDEX IF NOT EXISTS books_normalized_title_idx ON books(normalized_title);
+CREATE INDEX IF NOT EXISTS books_published_event_idx ON books(published_event_id);
 CREATE INDEX IF NOT EXISTS books_ownership_status_idx ON books(ownership_status);
 CREATE INDEX IF NOT EXISTS books_updated_idx ON books(updated_at);
 
