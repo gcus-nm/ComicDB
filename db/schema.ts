@@ -68,6 +68,9 @@ export const books = sqliteTable(
     normalizedTitle: text("normalized_title").notNull(),
     adultRating: text("adult_rating").notNull().default("general"),
     publishedOn: text("published_on"),
+    publishedEventId: text("published_event_id").references(() => events.id, {
+      onDelete: "set null",
+    }),
     edition: text("edition").notNull().default(""),
     storageLocationId: text("storage_location_id").references(
       () => storageLocations.id,
@@ -86,6 +89,7 @@ export const books = sqliteTable(
   },
   (table) => [
     index("books_normalized_title_idx").on(table.normalizedTitle),
+    index("books_published_event_idx").on(table.publishedEventId),
     index("books_ownership_status_idx").on(table.ownershipStatus),
     index("books_updated_idx").on(table.updatedAt),
   ],

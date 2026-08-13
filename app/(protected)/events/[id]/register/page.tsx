@@ -10,7 +10,7 @@ import {
 import { BookCard } from "@/components/book-card";
 import { BookForm } from "@/components/book-form";
 import { ExternalLinks } from "@/components/external-links";
-import { getEvent, listBooks, listTaxonomyTags } from "@/lib/catalog";
+import { getEvent, listBooks, listEvents, listTaxonomyTags } from "@/lib/catalog";
 
 export const metadata = { title: "イベント連続登録" };
 
@@ -24,6 +24,7 @@ export default async function EventRegisterPage({
   if (!event) notFound();
   const recent = listBooks({ eventId: id, limit: 8 }).books;
   const taxonomies = listTaxonomyTags();
+  const events = listEvents(2_000);
 
   return (
     <div className="page-stack narrow-page">
@@ -58,6 +59,11 @@ export default async function EventRegisterPage({
       </section>
       <BookForm
         event={{ id: event.id, name: event.name, startsOn: event.starts_on }}
+        events={events.map((item) => ({
+          id: item.id,
+          name: item.name,
+          startsOn: item.startsOn,
+        }))}
         taxonomies={taxonomies}
         continuous
       />

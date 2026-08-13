@@ -10,10 +10,11 @@ import {
   Users,
 } from "lucide-react";
 import { BookCover } from "@/components/book-cover";
+import { AcquisitionEditForm } from "@/components/acquisition-edit-form";
 import { BookEditForm } from "@/components/book-edit-form";
 import { BookLifecycleActions } from "@/components/book-lifecycle-actions";
 import { ExternalLinks } from "@/components/external-links";
-import { getBook, listTaxonomyTags } from "@/lib/catalog";
+import { getBook, listEvents, listTaxonomyTags } from "@/lib/catalog";
 
 export const metadata = { title: "蔵書詳細" };
 
@@ -26,6 +27,12 @@ export default async function BookDetailPage({
   const book = getBook(id);
   if (!book) notFound();
   const taxonomies = listTaxonomyTags();
+  const events = listEvents(2_000);
+  const selectableEvents = events.map((event) => ({
+    id: event.id,
+    name: event.name,
+    startsOn: event.startsOn,
+  }));
 
   return (
     <div className="page-stack narrow-page">
@@ -51,6 +58,7 @@ export default async function BookDetailPage({
               <dd>{book.ownedCount || 1}冊</dd>
             </div>
             <div><dt><CalendarDays size={16} />発行日</dt><dd>{book.publishedOn || "未登録"}</dd></div>
+            <div><dt><CalendarDays size={16} />発行イベント</dt><dd>{book.publishedEventName || "未登録"}</dd></div>
           </dl>
           {book.tags.length ? (
             <div className="tag-list">
@@ -63,7 +71,7 @@ export default async function BookDetailPage({
         </div>
       </section>
 
-      <BookEditForm book={book} taxonomies={taxonomies} />
+      <BookEditForm book={book} taxonomies={taxonomies} events={selectableEvents} />
 
       <section className="section-block">
         <div className="section-heading">
@@ -79,6 +87,11 @@ export default async function BookDetailPage({
                   <h3>{item.eventName || "イベント未設定"}</h3>
                   <p>{item.quantity}冊{item.priceYen != null ? ` · ${item.priceYen.toLocaleString()}円` : ""}</p>
                   {item.notes ? <small>{item.notes}</small> : null}
+                  <AcquisitionEditForm
+                    bookId={book.id}
+                    acquisition={item}
+                    events={selectableEvents}
+                  />
                 </div>
               </article>
             ))}

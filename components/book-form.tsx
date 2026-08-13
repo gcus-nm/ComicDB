@@ -42,8 +42,15 @@ export function BookForm({
   const [notice, setNotice] = useState("");
   const [duplicates, setDuplicates] = useState<Duplicate[]>([]);
   const [savedCount, setSavedCount] = useState(0);
-  const [availableEvents, setAvailableEvents] = useState(events);
+  const [availableEvents, setAvailableEvents] = useState(() =>
+    event && !events.some((item) => item.id === event.id)
+      ? [event, ...events]
+      : events,
+  );
   const [selectedEventId, setSelectedEventId] = useState("");
+  const [selectedPublishedEventId, setSelectedPublishedEventId] = useState(
+    event?.id ?? "",
+  );
   const [coverPreview, setCoverPreview] = useState<{
     url: string;
     fileName: string;
@@ -126,6 +133,7 @@ export function BookForm({
       eventObject.currentTarget.reset();
       setCoverPreview(null);
       if (!event) setSelectedEventId("");
+      setSelectedPublishedEventId(event?.id ?? "");
       setDuplicates([]);
       setSavedCount((count) => count + 1);
       setNotice(`「${body.title}」を登録しました。次の本を入力できます。`);
@@ -365,6 +373,26 @@ export function BookForm({
               <EventQuickCreate onCreated={addCreatedEvent} />
             </div>
           )}
+          <label>
+            発行イベント
+            <select
+              name="publishedEventId"
+              value={selectedPublishedEventId}
+              onChange={(eventObject) =>
+                setSelectedPublishedEventId(eventObject.target.value)
+              }
+            >
+              <option value="">イベント未指定</option>
+              {availableEvents.map((item) => (
+                <option key={item.id} value={item.id}>
+                  {item.startsOn}　{item.name}
+                </option>
+              ))}
+            </select>
+            <span className="field-hint">
+              購入イベントと異なる場合も個別に指定できます。
+            </span>
+          </label>
           <label>
             発行日
             <input name="publishedOn" type="date" />
