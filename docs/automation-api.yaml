@@ -183,6 +183,10 @@ components:
         endsOn: { type: string }
         venue: { type: string, maxLength: 200 }
         notes: { type: string, maxLength: 2000 }
+        links:
+          oneOf:
+            - { type: string, description: 1行に1件のHTTP/HTTPS URLまたはMarkdownリンク }
+            - { type: array, maxItems: 50, items: { type: string, description: HTTP/HTTPS URLまたは `[表示名](URL)` } }
   responses:
     JsonSuccess:
       description: Successful JSON result

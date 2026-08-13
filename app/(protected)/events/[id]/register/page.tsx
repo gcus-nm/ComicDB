@@ -9,6 +9,7 @@ import {
 } from "lucide-react";
 import { BookCard } from "@/components/book-card";
 import { BookForm } from "@/components/book-form";
+import { ExternalLinks } from "@/components/external-links";
 import { getEvent, listBooks, listTaxonomyTags } from "@/lib/catalog";
 
 export const metadata = { title: "イベント連続登録" };
@@ -29,13 +30,14 @@ export default async function EventRegisterPage({
       <Link href="/events" className="back-link"><ChevronLeft size={17} />イベント一覧へ</Link>
       <section className="event-register-header">
         <div className="event-badge"><CalendarDays size={24} /></div>
-        <div>
+        <div className="event-header-copy">
           <span className="eyebrow">QUICK REGISTER</span>
           <h1>{event.name}</h1>
           <p>
             {event.starts_on.replaceAll("-", ".")}
             {event.venue ? <><span>·</span><MapPin size={14} />{event.venue}</> : null}
           </p>
+          <ExternalLinks links={event.links} />
         </div>
         <div className="event-header-actions">
           <Link

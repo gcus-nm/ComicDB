@@ -74,6 +74,7 @@ export const eventInputSchema = z
     endsOn: optionalDate.optional().default(""),
     venue: z.string().trim().max(200).optional().default(""),
     notes: z.string().trim().max(2000).optional().default(""),
+    links: linksInput,
   })
   .superRefine((input, context) => {
     if (!isIsoDate(input.startsOn)) {

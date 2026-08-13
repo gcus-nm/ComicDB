@@ -8,6 +8,7 @@ import {
   Pencil,
 } from "lucide-react";
 import { WishlistManager } from "@/components/wishlist-manager";
+import { ExternalLinks } from "@/components/external-links";
 import { getEvent, listTaxonomyTags, listWishlistItems } from "@/lib/catalog";
 import { formatEventDateRange } from "@/lib/event-dates";
 
@@ -34,7 +35,7 @@ export default async function EventWishlistPage({
         <div className="event-badge">
           <CalendarDays size={24} />
         </div>
-        <div>
+        <div className="event-header-copy">
           <span className="eyebrow">EVENT WISHLIST</span>
           <h1>{event.name}</h1>
           <p>
@@ -47,6 +48,7 @@ export default async function EventWishlistPage({
               </>
             ) : null}
           </p>
+          <ExternalLinks links={event.links} />
         </div>
         <div className="event-header-actions">
           <Link

@@ -1600,6 +1600,14 @@ button:disabled {
   font-size: 11px;
 }
 
+.event-header-copy {
+  min-width: 0;
+}
+
+.event-header-copy > .external-links {
+  margin-top: 7px;
+}
+
 .wishlist-register-link {
   flex: 0 0 auto;
   margin-left: auto;

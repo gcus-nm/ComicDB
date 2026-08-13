@@ -25,7 +25,7 @@ export default async function EditEventPage({
         <div>
           <span className="eyebrow">EDIT EVENT</span>
           <h1>イベントを編集</h1>
-          <p>イベント名、開催日、会場、メモを変更できます。</p>
+          <p>イベント名、開催日、会場、関連リンク、メモを変更できます。</p>
         </div>
       </header>
       <EventEditForm
@@ -36,6 +36,7 @@ export default async function EditEventPage({
           endsOn: event.ends_on,
           venue: event.venue,
           notes: event.notes,
+          links: event.links,
         }}
       />
     </div>

@@ -187,6 +187,7 @@ export const events = sqliteTable(
     endsOn: text("ends_on"),
     venue: text("venue").notNull().default(""),
     notes: text("notes").notNull().default(""),
+    links: text("links").notNull().default("[]"),
     createdAt: text("created_at").notNull(),
     updatedAt: text("updated_at").notNull(),
   },

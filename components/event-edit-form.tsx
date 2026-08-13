@@ -12,6 +12,7 @@ type EditableEvent = {
   endsOn: string | null;
   venue: string;
   notes: string;
+  links: string[];
 };
 
 export function EventEditForm({ event }: { event: EditableEvent }) {
@@ -90,6 +91,15 @@ export function EventEditForm({ event }: { event: EditableEvent }) {
             defaultValue={event.venue}
             placeholder="例：東京ビッグサイト"
           />
+        </label>
+        <label className="span-2">
+          関連リンク
+          <textarea
+            name="links"
+            rows={3}
+            defaultValue={event.links.join("\n")}
+          />
+          <span className="field-hint">URL、または [表示名](URL) を1行に1件入力します。</span>
         </label>
         <label className="span-2">
           メモ

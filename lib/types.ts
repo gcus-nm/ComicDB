@@ -52,6 +52,7 @@ export type EventSummary = {
   endsOn: string | null;
   venue: string;
   notes: string;
+  links: string[];
   bookCount: number;
   totalQuantity: number;
   wishlistCount: number;
