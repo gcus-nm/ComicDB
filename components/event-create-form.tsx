@@ -56,6 +56,15 @@ export function EventCreateForm() {
           <input name="venue" maxLength={200} placeholder="例：東京ビッグサイト" />
         </label>
         <label className="span-2">
+          関連リンク
+          <textarea
+            name="links"
+            rows={3}
+            placeholder={"[公式サイト](https://example.com/)\n[Webカタログ](https://example.com/catalog/)"}
+          />
+          <span className="field-hint">URL、または [表示名](URL) を1行に1件入力します。</span>
+        </label>
+        <label className="span-2">
           メモ
           <textarea name="notes" rows={3} placeholder="配置、参加日など" />
         </label>

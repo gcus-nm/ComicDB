@@ -300,6 +300,7 @@ describe("蔵書管理", () => {
       endsOn: "2026-08-17",
       venue: "変更前会場",
       notes: "変更前メモ",
+      links: ["https://example.com/before"],
     })!;
     createWishlistItem(event.id, {
       eventDay: 3,
@@ -333,6 +334,10 @@ describe("蔵書管理", () => {
       endsOn: "2026-08-18",
       venue: "変更後会場",
       notes: "変更後メモ",
+      links: [
+        "[公式サイト](https://example.com/after)",
+        "https://example.com/catalog",
+      ],
     });
     expect(updated).toMatchObject({
       id: event.id,
@@ -341,8 +346,26 @@ describe("蔵書管理", () => {
       ends_on: "2026-08-18",
       venue: "変更後会場",
       notes: "変更後メモ",
+      links: [
+        "[公式サイト](https://example.com/after)",
+        "https://example.com/catalog",
+      ],
     });
     expect(getEvent(event.id)).toMatchObject(updated!);
+    expect(
+      updateEvent(event.id, {
+        name: "変更後イベント",
+        startsOn: "2026-08-16",
+        endsOn: "2026-08-18",
+        venue: "変更後会場",
+        notes: "変更後メモ",
+      }),
+    ).toMatchObject({
+      links: [
+        "[公式サイト](https://example.com/after)",
+        "https://example.com/catalog",
+      ],
+    });
     expect(listEvents()[0]).toMatchObject({
       id: event.id,
       name: "変更後イベント",
@@ -350,6 +373,10 @@ describe("蔵書管理", () => {
       endsOn: "2026-08-18",
       venue: "変更後会場",
       notes: "変更後メモ",
+      links: [
+        "[公式サイト](https://example.com/after)",
+        "https://example.com/catalog",
+      ],
     });
   });
 

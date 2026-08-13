@@ -734,8 +734,8 @@ export function createEvent(input: EventInput) {
   getDb()
     .sqlite.prepare(
       `INSERT INTO events
-        (id, name, starts_on, ends_on, venue, notes, created_at, updated_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+        (id, name, starts_on, ends_on, venue, notes, links, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     )
     .run(
       id,
@@ -744,6 +744,7 @@ export function createEvent(input: EventInput) {
       input.endsOn || null,
       input.venue,
       input.notes,
+      JSON.stringify(input.links ?? []),
       now,
       now,
     );
@@ -755,6 +756,7 @@ export function updateEvent(id: string, input: EventInput) {
     .sqlite.prepare(
       `UPDATE events SET
         name = ?, starts_on = ?, ends_on = ?, venue = ?, notes = ?,
+        links = COALESCE(?, links),
         updated_at = ?
        WHERE id = ?`,
     )
@@ -764,6 +766,7 @@ export function updateEvent(id: string, input: EventInput) {
       input.endsOn || null,
       input.venue,
       input.notes,
+      input.links === undefined ? null : JSON.stringify(input.links),
       new Date().toISOString(),
       id,
     );
@@ -771,7 +774,7 @@ export function updateEvent(id: string, input: EventInput) {
 }
 
 export function getEvent(id: string) {
-  return getDb().sqlite
+  const row = getDb().sqlite
     .prepare(
       `SELECT e.*,
         COUNT(DISTINCT a.book_id) AS book_count,
@@ -794,12 +797,14 @@ export function getEvent(id: string) {
         ends_on: string | null;
         venue: string;
         notes: string;
+        links: string;
         book_count: number;
         total_quantity: number;
         wishlist_count: number;
         wishlist_remaining_count: number;
       }
     | undefined;
+  return row ? { ...row, links: parseJson<string[]>(row.links, []) } : undefined;
 }
 
 export function hasWishlistItemsOutsideEventRange(
@@ -823,7 +828,7 @@ export function hasWishlistItemsOutsideEventRange(
 export function listEvents(limit = 100): EventSummary[] {
   const rows = getDb().sqlite
     .prepare(
-      `SELECT e.id, e.name, e.starts_on, e.ends_on, e.venue, e.notes,
+      `SELECT e.id, e.name, e.starts_on, e.ends_on, e.venue, e.notes, e.links,
         COUNT(DISTINCT a.book_id) AS book_count,
         COALESCE(SUM(a.quantity), 0) AS total_quantity,
         (SELECT COUNT(*) FROM wishlist_items w WHERE w.event_id = e.id)
@@ -844,6 +849,7 @@ export function listEvents(limit = 100): EventSummary[] {
     ends_on: string | null;
     venue: string;
     notes: string;
+    links: string;
     book_count: number;
     total_quantity: number;
     wishlist_count: number;
@@ -856,6 +862,7 @@ export function listEvents(limit = 100): EventSummary[] {
     endsOn: row.ends_on,
     venue: row.venue,
     notes: row.notes,
+    links: parseJson<string[]>(row.links, []),
     bookCount: row.book_count,
     totalQuantity: row.total_quantity,
     wishlistCount: row.wishlist_count,

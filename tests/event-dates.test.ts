@@ -51,6 +51,19 @@ describe("イベント日付", () => {
     };
     expect(eventInputSchema.safeParse(valid).success).toBe(true);
     expect(
+      eventInputSchema.parse({
+        ...valid,
+        links: "[公式サイト](https://example.com/)\nhttps://example.com/catalog",
+      }).links,
+    ).toEqual([
+      "[公式サイト](https://example.com/)",
+      "https://example.com/catalog",
+    ]);
+    expect(
+      eventInputSchema.safeParse({ ...valid, links: "javascript:alert(1)" })
+        .success,
+    ).toBe(false);
+    expect(
       eventInputSchema.safeParse({
         ...valid,
         endsOn: "2026-08-10",

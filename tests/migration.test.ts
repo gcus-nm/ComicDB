@@ -19,7 +19,7 @@ afterEach(() => {
 });
 
 describe("DBマイグレーション", () => {
-  it("v6のデータを引き継ぎ、関連リンク列まで追加してv11へ移行する", () => {
+  it("v6のデータを引き継ぎ、イベントの関連リンク列まで追加してv12へ移行する", () => {
     tempDir = mkdtempSync(path.join(os.tmpdir(), "comicdb-migration-"));
     const dataDir = path.join(tempDir, "data");
     const backupDir = path.join(tempDir, "backups");
@@ -109,7 +109,7 @@ describe("DBマイグレーション", () => {
     });
 
     const migrated = new Database(databasePath, { readonly: true });
-    expect(migrated.pragma("user_version", { simple: true })).toBe(11);
+    expect(migrated.pragma("user_version", { simple: true })).toBe(12);
     expect(
       migrated
         .prepare("SELECT event_day FROM wishlist_items WHERE id = ?")
@@ -127,6 +127,12 @@ describe("DBマイグレーション", () => {
         .prepare("SELECT links FROM wishlist_items WHERE id = ?")
         .pluck()
         .get("wishlist-1"),
+    ).toBe("[]");
+    expect(
+      migrated
+        .prepare("SELECT links FROM events WHERE id = ?")
+        .pluck()
+        .get("event-1"),
     ).toBe("[]");
     expect(
       migrated
